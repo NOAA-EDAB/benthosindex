@@ -50,3 +50,6 @@ rsconnect/
 
 # Mac junk
 .DS_Store
+
+# local huge files
+*.nc

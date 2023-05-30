@@ -1,0 +1,37 @@
+---
+title: "VAST index workflow"
+author: "Sarah Gaichas"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Data
+
+## Which prey?
+
+## Which predators?
+
+## Which surveys?
+
+## Spatial scale
+
+Suggestion: use entire VAST northwest-atlantic grid
+
+## Covariates
+
+### Fill missing physical data?
+
+# Modeling
+
+## VAST model setup
+
+Univariate or multivariate? Season?
+
+## VAST model selection
+
+## VAST model bias correction and results
+

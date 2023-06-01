@@ -69,6 +69,7 @@ prey[is.na(RPATH) & Collcom %in% c('PANDALIDAE', 'PENAEIDAE', 'DECAPODA SHRIMP',
 
 #Macrobenthos
 prey[is.na(RPATH) & MODCAT == 'BENINV', RPATH := 'Macrobenthos']
+prey[PYCOMNAM %like% 'HERMIT', Rpath := 'Macrobenthos'] #High level hermit crabs flagged as mega
 
 #MODCAT PELINV
 prey[is.na(RPATH) & Collcom == 'COMB JELLIES', RPATH := 'GelZooplankton']

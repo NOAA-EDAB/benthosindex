@@ -207,7 +207,7 @@ Suggestion: use entire VAST northwest-atlantic grid for estimation and split out
 
 ## Covariates
 
-Suggestion: start with mean predator size at a station, number of predator species at a station, and bottom water temperature. Is there anything else we would want for benthic organisms? Reviewers suggested depth for the forage fish index.
+Suggestion: start with mean predator size at a station, number of predator species at a station, and bottom water temperature. Is there anything else we would want for benthic organisms? Reviewers suggested depth for the forage fish index, but it did not converge and may be more appropriate as a habitat covariate. 
 
 ### Fill missing physical data?
 
@@ -220,6 +220,8 @@ When I looked at bottom temperature data in the NEFSC survey, we had as many mis
 Univariate or multivariate? First lets try separate univariate models for each of the prey groups, one model for macrobenthos and one for megabenthos. Then we can get fancier trying to look at a multivariate model?
 
 Do we want to separate seasons or try an annual model? I guess it depends on how the Rpaths are set up.
+
+DECISION: Fall is how the GOM is parameterized so start with that.
 
 ## VAST model selection
 

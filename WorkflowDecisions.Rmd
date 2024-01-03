@@ -27,19 +27,37 @@ The basic workflow is to develop a dataset of stomach contents data where fish p
 
 ## Which prey?
 
-Sean has mapped the food habits categories to Rpath categories. We want indices for the benthic categories Megafauna and Macrofauna in the GB and GOM Rpath models:
+Sean has mapped the food habits categories to Rpath categories. We want indices for the benthic categories Megafauna and Macrofauna in the GB and GOM Rpath models.
+
+Upon review of these categories and model input data by Sean and Sarah Weisberg, two changes were made from the original list.
+
+*  The prey "PECTINIDAE", "PECTINIDAE SHELL", "PECTINIDAE VISCERA" were removed from macrobenthos and added to the AtlScallop group, as they likely represent sea scallops identified in stomachs. Therefore these prey categories will not be included in the benthos indices.
+
+*  The prey "ALBUNEA PARETII", "EMERITA TALPOIDA", "RANILIA MURICATA", "HIPPIDAE" were removed from megabenthos and added to macrobenthos, because these are small sand crabs and mole crabs.
+
+All tables in this document have been adjusted to reflect these changes.
+
 
 ```{r}
 # object is called prey
-load(here("data/prey.Rdata"))
+load(here("data/prey.Rdata")) #original mappings from June 2023
 
-macroben <- prey %>%
-  dplyr::filter(RPATH == "Macrobenthos")
+addtomacro <- prey |>
+  dplyr::filter(RPATH == "Megabenthos") |> 
+  dplyr::filter(PYNAM %in% c("ALBUNEA PARETII", "EMERITA TALPOIDA", "RANILIA MURICATA", "HIPPIDAE"))
 
-megaben <- prey %>%
-  dplyr::filter(RPATH == "Megabenthos")
+megaben <- prey |>
+  dplyr::filter(RPATH == "Megabenthos") |>
+  dplyr::filter(!PYNAM %in% c("ALBUNEA PARETII", "EMERITA TALPOIDA", "RANILIA MURICATA", "HIPPIDAE"))
+
+macroben <- prey |>
+  dplyr::filter(RPATH == "Macrobenthos") |> 
+  dplyr::filter(!PYNAM %in% c("PECTINIDAE", "PECTINIDAE SHELL", "PECTINIDAE VISCERA")) |>
+  dplyr::bind_rows(addtomacro)
+
 
 ```
+
 
 The Macrobenthos Rpath category has `r dim(macroben)[1]` food habits database species codes:
 
@@ -51,7 +69,6 @@ datatable(macroben, rownames = FALSE,
                          scrollX = TRUE,
                          fixedColumns = list(leftColumns = 1)))
 ```
-
 
 The Megabenthos Rpath category has `r dim(megaben)[1]` food habits database species codes:
 
@@ -123,7 +140,7 @@ datatable(megapreycount, rownames = FALSE,
 
 ## Which predators?
 
-We have a couple of options for a predator list. First is to use every predator (or all above a cutoff number of observations, maybe 50 or 100 across the whole database) where something in the prey list was observed, second is to use all benthivores or some other group(s) as identified by diet similarity. 
+We have a couple of options for a predator list. First is to use every predator (or all above a cutoff number of observations, maybe 50 or 100 across the whole database) where something in the prey list was observed, second is to use all benthivores or some other group(s) as identified by diet similarity.
 
 ```{r}
 
@@ -197,9 +214,54 @@ plot(dend,
 
 ```
 
+We decided to use the cluster groups to eliminate pelagic species that would only rarely consume these prey. Therefore we will use species in 4 of the 6 clusters, but not use species in the planktivore cluster (blue above) or the piscivore cluster (gold above). 
+
+Therefore, the following is the predator/size list:
+
+```{r}
+pisc <- partition_leaves(dend)[[
+  which_node(dend, c("Bluefish..S(37)", "Bluefish..M(36)", "Bluefish..L(35)"))
+]]
+
+piscdf <- data.frame("COMNAME" = toupper(str_remove(pisc, "\\..*")),
+                             "SizeCat" = str_remove(str_extract(pisc, "\\..*[:upper:]+"), "\\.."))
+
+
+plank <- partition_leaves(dend)[[
+  which_node(dend, c("Atlantic herring..S(20)", "Atlantic mackerel..S(23)", "Blueback herring..XS(34)"))
+]]
+
+plankdf <- data.frame("COMNAME" = toupper(str_remove(plank, "\\..*")),
+                             "SizeCat" = str_remove(str_extract(plank, "\\..*[:upper:]+"), "\\.."))
+
+all <- partition_leaves(dend)[[
+  which_node(dend, c("Barndoor skate..S(26)", "Bluefish..L(35)"))
+]]
+
+alldf <- data.frame("COMNAME" = toupper(str_remove(all, "\\..*")),
+                             "SizeCat" = str_remove(str_extract(all, "\\..*[:upper:]+"), "\\.."))
+
+benthivores <- alldf |>
+  dplyr::anti_join(dplyr::bind_rows(piscdf, plankdf))
+
+datatable(benthivores, rownames = FALSE,
+          extensions = c("FixedColumns"),
+          caption = "Predator list for benthos indices",
+          options = list(pageLength = 90,
+                         scrollX = TRUE,
+                         fixedColumns = list(leftColumns = 1)))
+
+```
+
+
 ## Which surveys?
 
-Start with NEFSC, find out if MA and ME/NE surveys collect diet information, and add NEAMAP later once predator and prey lists are well established.
+Start with NEFSC, find out if MA and ME/NH surveys collect diet information, and add NEAMAP later once predator and prey lists are well established.
+
+MA and ME/NH surveys do not collect diet information.
+
+As of January 2024, predator and prey lists are established enough for a NEAMAP request.
+
 
 ## Spatial scale
 

@@ -241,6 +241,26 @@ all <- partition_leaves(dend)[[
 alldf <- data.frame("COMNAME" = toupper(str_remove(all, "\\..*")),
                              "SizeCat" = str_remove(str_extract(all, "\\..*[:upper:]+"), "\\.."))
 
+sizedef <- readxl::read_excel(here::here("data-raw/Table3.xlsx"),
+                              range = "B3:H55") |>  # table of NEFSC FH size categories from Brian
+  dplyr::rename(XS = `Extra-Small`,
+                S = "Small",
+                M = "Medium",
+                L = "Large",
+                XL = `Extra-Large`) |>
+  tidyr::pivot_longer(-c(1:2), names_to = "sizecat", values_to = "range") |>
+  dplyr::filter(!range=="-") 
+
+
+ dplyr::mutate(COMNAME = toupper(`Common Name`),
+               XS = readr::parse_number(`Extra-Small`),
+               S = readr::parse_number(Small),
+               M = readr::parse_number(Medium),
+               L = readr::parse_number(Large),
+               XL = readr::parse_number(`Extra-Large`))
+  
+  
+
 benthivores <- alldf |>
   dplyr::anti_join(dplyr::bind_rows(piscdf, plankdf))
 

@@ -297,7 +297,10 @@ sizedef <- bind_rows(sizedef, extra)
 # we'll call benthivores everything but piscivores and planktivores
 benthivores <- alldf |>
   dplyr::anti_join(dplyr::bind_rows(piscdf, plankdf)) |>
-  dplyr::left_join(sizedef, join_by(COMNAME == COMNAME, SizeCat == sizecat))
+  dplyr::left_join(sizedef, join_by(COMNAME == COMNAME, SizeCat == sizecat)) |>
+  dplyr::left_join(ecodata::species_groupings, by = "COMNAME") |>
+  dplyr::select(COMNAME, ITISSPP, SCINAME, SizeCat = SizeCat.x, SizeRange_cm = range) |>
+  dplyr::distinct()
 
 datatable(benthivores, rownames = FALSE,
           extensions = c("FixedColumns"),
@@ -305,6 +308,8 @@ datatable(benthivores, rownames = FALSE,
           options = list(pageLength = 90,
                          scrollX = TRUE,
                          fixedColumns = list(leftColumns = 1)))
+
+saveRDS(benthivores, here::here("data/benthivorelist.rds"))
 
 ```
 
@@ -316,6 +321,25 @@ Start with NEFSC, find out if MA and ME/NH surveys collect diet information, and
 MA and ME/NH surveys do not collect diet information.
 
 As of January 2024, predator and prey lists are established enough for a NEAMAP request. Just needed to add the size categories; almost there...
+
+Add ITISSPP to prey lists where possible
+
+```{r}
+macrobenITIS <- macroben |>
+  dplyr::select(PYNAM, PYCOMNAM, PYSPP) |>
+  dplyr::left_join(ecodata::species_groupings, join_by(PYNAM == SCINAME)) |>
+  dplyr::select(PYNAM, PYCOMNAM, COMNAME, PYSPP, ITISSPP)
+
+megabenITIS <- megaben |>
+  dplyr::select(PYNAM, PYCOMNAM, PYSPP) |>
+  dplyr::left_join(ecodata::species_groupings, join_by(PYNAM == SCINAME)) |>
+  dplyr::select(PYNAM, PYCOMNAM, COMNAME, PYSPP, ITISSPP)
+
+saveRDS(macrobenITIS, here::here("data/macrobenthosprey.rds"))
+saveRDS(megabenITIS, here::here("data/megabenthosprey.rds"))
+
+```
+
 
 
 ## Spatial scale

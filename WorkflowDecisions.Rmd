@@ -216,7 +216,7 @@ plot(dend,
 
 We decided to use the cluster groups to eliminate pelagic species that would only rarely consume these prey. Therefore we will use species in 4 of the 6 clusters, but not use species in the planktivore cluster (blue above) or the piscivore cluster (gold above). 
 
-Therefore, the following is the predator/size list:
+Therefore, the following is the NEFSC BTS predator/size list:
 
 ```{r}
 pisc <- partition_leaves(dend)[[
@@ -247,22 +247,57 @@ sizedef <- readxl::read_excel(here::here("data-raw/Table3.xlsx"),
                 S = "Small",
                 M = "Medium",
                 L = "Large",
-                XL = `Extra-Large`) |>
+                XL = `Extra-Large`,
+                CommonName = `Common Name`,
+                SpeciesName = `Species Name`) |>
   tidyr::pivot_longer(-c(1:2), names_to = "sizecat", values_to = "range") |>
-  dplyr::filter(!range=="-") 
-
-
- dplyr::mutate(COMNAME = toupper(`Common Name`),
-               XS = readr::parse_number(`Extra-Small`),
-               S = readr::parse_number(Small),
-               M = readr::parse_number(Medium),
-               L = readr::parse_number(Large),
-               XL = readr::parse_number(`Extra-Large`))
-  
+  dplyr::filter(!range=="-") |>
+  dplyr::mutate(COMNAME = toupper(CommonName)) 
   
 
+# add missing by hand from word Table 1.docx 
+# (pollock was misspelled, fixed in spreadsheet)
+# (removed "flounder" from Windowpane in spreadsheet)
+# asked Brian for these; response:
+# For these predators and most likely any others not listed in TM216, 
+# the default is S (<=20 cm), M (>20 and <=50 cm), and L (>50 cm).
+# Northern kingfish M
+# Buckler dory S
+# Fourbeard rockling S
+# Fourbeard rockling M
+# Cunner M
+
+extra <- data.frame(CommonName = c("Northern kingfish",
+                                      "Buckler dory",
+                                      "Fourbeard rockling",
+                                      "Fourbeard rockling",
+                                      "Cunner"),  
+                    sizecat = c("M",
+                                "S",
+                                "S",
+                                "M",
+                                "M"), 
+                    range = c("21-50",
+                              "≤20",
+                              "≤20",
+                              "21-50",
+                              "21-50"))  |>
+  dplyr::mutate(COMNAME = toupper(CommonName)) 
+
+sizedef <- bind_rows(sizedef, extra)
+
+ # dplyr::mutate(COMNAME = toupper(`Common Name`),
+ #               XS = readr::parse_number(`Extra-Small`),
+ #               S = readr::parse_number(Small),
+ #               M = readr::parse_number(Medium),
+ #               L = readr::parse_number(Large),
+ #               XL = readr::parse_number(`Extra-Large`))
+  
+  
+# we'll call benthivores everything but piscivores and planktivores
 benthivores <- alldf |>
-  dplyr::anti_join(dplyr::bind_rows(piscdf, plankdf))
+  dplyr::anti_join(dplyr::bind_rows(piscdf, plankdf)) |>
+  dplyr::left_join(sizedef, join_by(COMNAME == COMNAME, SizeCat == sizecat))
 
 datatable(benthivores, rownames = FALSE,
           extensions = c("FixedColumns"),
@@ -280,7 +315,7 @@ Start with NEFSC, find out if MA and ME/NH surveys collect diet information, and
 
 MA and ME/NH surveys do not collect diet information.
 
-As of January 2024, predator and prey lists are established enough for a NEAMAP request.
+As of January 2024, predator and prey lists are established enough for a NEAMAP request. Just needed to add the size categories; almost there...
 
 
 ## Spatial scale

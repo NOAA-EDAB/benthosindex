@@ -1,5 +1,6 @@
 # Streamlined version of CreateVASTInputs.Rmd for operational updates to forage index indicators
-# October 2023
+# Modified for benthos index
+# May 2024
 #   This one is updating with 2022 NEFSC and NEAMAP data and OISST
 #   To be used in the 2024 State of the Ecosystem report
 

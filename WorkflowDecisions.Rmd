@@ -40,7 +40,7 @@ All tables in this document have been adjusted to reflect these changes.
 
 ```{r}
 # object is called prey
-load(here("data/prey.Rdata")) #original mappings from June 2023
+load(here("data/prey.RData")) #original mappings from June 2023
 
 addtomacro <- prey |>
   dplyr::filter(RPATH == "Megabenthos") |> 
@@ -340,12 +340,13 @@ saveRDS(megabenITIS, here::here("data/megabenthosprey.rds"))
 
 ```
 
-NEAMAP survey results recieved May 2024. Add em in:
+NEAMAP survey results received May 2024. Add em in:
 
 ```{r}
 
 ```
 
+For this modify the data generation script in the forageindex repo, here: https://github.com/NOAA-EDAB/forageindex/blob/main/fhdat/VASTforage_ProcessInputDat.R 
 
 ## Spatial scale
 

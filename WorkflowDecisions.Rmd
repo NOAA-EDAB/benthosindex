@@ -344,15 +344,14 @@ NEAMAP survey results received May 2024 using the above prey lists.
 
 Jim Gartland provided a lookup table of NEFSC to NEAMAP prey codes! Add to ecodata for future use.
 
+For this modify the [data generation script in the forageindex repo](https://github.com/NOAA-EDAB/forageindex/blob/main/fhdat/VASTforage_ProcessInputDat.R). 
 
+All data have been combined in the new script [VASTbenthos_ProcessInputDat.R](https://github.com/NOAA-EDAB/benthosindex/blob/main/fhdata/VASTbenthos_ProcessInputDat.R): 
 
-All data combined in the script VASTbenthos_ProcessInputDat.R 
-
-```{r}
+```{r, code=readLines("https://raw.githubusercontent.com/NOAA-EDAB/benthosindex/main/fhdata/VASTbenthos_ProcessInputDat.R"), eval=FALSE}
 
 ```
 
-For this modify the data generation script in the forageindex repo, here: https://github.com/NOAA-EDAB/forageindex/blob/main/fhdat/VASTforage_ProcessInputDat.R 
 
 ## Spatial scale
 
@@ -375,6 +374,10 @@ Univariate or multivariate? First lets try separate univariate models for each o
 Do we want to separate seasons or try an annual model? I guess it depends on how the Rpaths are set up.
 
 DECISION: Fall is how the GOM is parameterized so start with that.
+
+This script tests fall and spring models, no covariates but estimating full spatial and spatio-temporal RE and anistotropy. 
+
+https://github.com/NOAA-EDAB/benthosindex/blob/main/VASTscripts/VASTunivariate_megabenthos_allsurvs.R 
 
 ## VAST model selection
 

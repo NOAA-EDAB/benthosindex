@@ -340,7 +340,13 @@ saveRDS(megabenITIS, here::here("data/megabenthosprey.rds"))
 
 ```
 
-NEAMAP survey results received May 2024. Add em in:
+NEAMAP survey results received May 2024 using the above prey lists. 
+
+Jim Gartland provided a lookup table of NEFSC to NEAMAP prey codes! Add to ecodata for future use.
+
+
+
+All data combined in the script VASTbenthos_ProcessInputDat.R 
 
 ```{r}
 

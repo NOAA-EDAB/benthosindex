@@ -24,6 +24,9 @@ allfh <- allfh %>%
   dplyr::bind_rows(allfh21) |>
   dplyr::bind_rows(allfh22)
 
+# can we deload the 21 and 22 datasets?
+rm("allfh21", "allfh22")
+
 ###############################################################################
 # read predator similarity info to generate predator list
 # Input NEFSC food habits overlap matrix:
@@ -33,9 +36,13 @@ dietoverlap <- read_csv(here("data-raw/tgmat.2022-02-15.csv"))
 # use dendextend functions to get list
 d_dietoverlap <- dist(dietoverlap)
 
-guilds <- hclust(d_dietoverlap, method = "complete")
+guilds <- hclust(d_dietoverlap)
+
+#plot(guilds)
 
 dend <- as.dendrogram(guilds)
+
+dend <- rotate(dend, 1:136)
 
 dend <- color_branches(dend, k=6) # Brian uses 6 categories
 
@@ -43,99 +50,148 @@ labels(dend) <- paste(as.character(names(dietoverlap[-1]))[order.dendrogram(dend
                       "(",labels(dend),")", 
                       sep = "")
 
-pisccomplete <- partition_leaves(dend)[[
+dend <- hang.dendrogram(dend,hang_height=0.1)
+
+pisc <- partition_leaves(dend)[[
   which_node(dend, c("Bluefish..S(37)", "Bluefish..M(36)", "Bluefish..L(35)"))
 ]]
 
+piscdf <- data.frame("COMNAME" = toupper(str_remove(pisc, "\\..*")),
+                     "SizeCat" = str_remove(str_extract(pisc, "\\..*[:upper:]+"), "\\.."))
 
-# Filter NEFSC food habits data with predator list
-pisccompletedf <- data.frame("COMNAME" = toupper(str_remove(pisccomplete, "\\..*")),
-                             "SizeCat" = str_remove(str_extract(pisccomplete, "\\..*[:upper:]+"), "\\.."),
-                             "feedguild" = "pisccomplete")
 
-fh.nefsc.pisc.pisccomplete <- allfh %>%
+plank <- partition_leaves(dend)[[
+  which_node(dend, c("Atlantic herring..S(20)", "Atlantic mackerel..S(23)", "Blueback herring..XS(34)"))
+]]
+
+plankdf <- data.frame("COMNAME" = toupper(str_remove(plank, "\\..*")),
+                      "SizeCat" = str_remove(str_extract(plank, "\\..*[:upper:]+"), "\\.."))
+
+all <- partition_leaves(dend)[[
+  which_node(dend, c("Barndoor skate..S(26)", "Bluefish..L(35)"))
+]]
+
+alldf <- data.frame("COMNAME" = toupper(str_remove(all, "\\..*")),
+                    "SizeCat" = str_remove(str_extract(all, "\\..*[:upper:]+"), "\\.."))
+
+sizedef <- readxl::read_excel(here::here("data-raw/Table3.xlsx"),
+                              range = "B3:H55") |>  # table of NEFSC FH size categories from Brian
+  dplyr::rename(XS = `Extra-Small`,
+                S = "Small",
+                M = "Medium",
+                L = "Large",
+                XL = `Extra-Large`,
+                CommonName = `Common Name`,
+                SpeciesName = `Species Name`) |>
+  tidyr::pivot_longer(-c(1:2), names_to = "sizecat", values_to = "range") |>
+  dplyr::filter(!range=="-") |>
+  dplyr::mutate(COMNAME = toupper(CommonName)) 
+
+
+# add missing by hand from word Table 1.docx 
+# (pollock was misspelled, fixed in spreadsheet)
+# (removed "flounder" from Windowpane in spreadsheet)
+# asked Brian for these; response:
+# For these predators and most likely any others not listed in TM216, 
+# the default is S (<=20 cm), M (>20 and <=50 cm), and L (>50 cm).
+# Northern kingfish M
+# Buckler dory S
+# Fourbeard rockling S
+# Fourbeard rockling M
+# Cunner M
+
+extra <- data.frame(CommonName = c("Northern kingfish",
+                                   "Buckler dory",
+                                   "Fourbeard rockling",
+                                   "Fourbeard rockling",
+                                   "Cunner"),  
+                    sizecat = c("M",
+                                "S",
+                                "S",
+                                "M",
+                                "M"), 
+                    range = c("21-50",
+                              "≤20",
+                              "≤20",
+                              "21-50",
+                              "21-50"))  |>
+  dplyr::mutate(COMNAME = toupper(CommonName)) 
+
+sizedef <- bind_rows(sizedef, extra)
+
+# dplyr::mutate(COMNAME = toupper(`Common Name`),
+#               XS = readr::parse_number(`Extra-Small`),
+#               S = readr::parse_number(Small),
+#               M = readr::parse_number(Medium),
+#               L = readr::parse_number(Large),
+#               XL = readr::parse_number(`Extra-Large`))
+
+
+# we'll call benthivores everything but piscivores and planktivores
+benthivores <- alldf |>
+  dplyr::anti_join(dplyr::bind_rows(piscdf, plankdf)) |>
+  dplyr::left_join(sizedef, join_by(COMNAME == COMNAME, SizeCat == sizecat)) |>
+  dplyr::left_join(ecodata::species_groupings, by = "COMNAME") |>
+  dplyr::select(COMNAME, ITISSPP, SCINAME, SizeCat = SizeCat.x, SizeRange_cm = range) |>
+  dplyr::distinct()
+
+fh.nefsc.benthivore.complete <- allfh %>%
   #filter(pynam != "EMPTY") %>%
-  left_join(pisccompletedf, by = c("pdcomnam" = "COMNAME",
-                                   "sizecat" = "SizeCat")) %>%
-  filter(!is.na(feedguild))
+  left_join(benthivores, by = c("pdcomnam" = "COMNAME",
+                                   "sizecat" = "SizeCat")) 
 
 
 ##############################################################################
-# Get prey list from NEFSC and NEAMAP
+# Get prey list from Rpath megabenthos and macrobenthos categories
 
-preycount  <- fh.nefsc.pisc.pisccomplete %>%
-  #group_by(year, season, pdcomnam, pynam) %>%
-  group_by(pdcomnam, pynam) %>%
-  summarise(count = n()) %>%
-  #arrange(desc(count))
-  pivot_wider(names_from = pdcomnam, values_from = count)
+# Rpath prey list, object is called prey
+load(here("data/prey.RData")) #original mappings from June 2023
 
+# make adjustments to list based on modeling group discussions
+addtomacro <- prey |>
+  dplyr::filter(RPATH == "Megabenthos") |> 
+  dplyr::filter(PYNAM %in% c("ALBUNEA PARETII", "EMERITA TALPOIDA", "RANILIA MURICATA", "HIPPIDAE"))
 
-gencomlist <- allfh %>%
-  select(pynam, pycomnam2, gencom2) %>%
-  distinct()
+megaben <- prey |>
+  dplyr::filter(RPATH == "Megabenthos") |>
+  dplyr::filter(!PYNAM %in% c("ALBUNEA PARETII", "EMERITA TALPOIDA", "RANILIA MURICATA", "HIPPIDAE"))
 
-NEFSCblueprey <- preycount %>%
-  #filter(BLUEFISH > 9) %>%
-  filter(!pynam %in% c("EMPTY", "BLOWN",
-                       "FISH", "OSTEICHTHYES",
-                       "ANIMAL REMAINS",
-                       "FISH SCALES")) %>%
-  #filter(!str_detect(pynam, "SHRIMP|CRAB")) %>%
-  left_join(gencomlist) %>%
-  filter(!gencom2 %in% c("ARTHROPODA", "ANNELIDA",
-                         "CNIDARIA", "UROCHORDATA",
-                         "ECHINODERMATA", "WORMS",
-                         "BRACHIOPODA", "COMB JELLIES",
-                         "BRYOZOA", "SPONGES",
-                         "MISCELLANEOUS", "OTHER")) %>%
-  arrange(desc(BLUEFISH))
+macroben <- prey |>
+  dplyr::filter(RPATH == "Macrobenthos") |> 
+  dplyr::filter(!PYNAM %in% c("PECTINIDAE", "PECTINIDAE SHELL", "PECTINIDAE VISCERA")) |>
+  dplyr::bind_rows(addtomacro)
 
-# March 2023, formally add NEAMAP to prey decisions
-NEAMAPblueprey <- read.csv(here("fhdat/Full Prey List_Common Names.csv")) %>%
-  #filter(BLUEFISH > 9) %>%
-  filter(!SCIENTIFIC.NAME %in% c("Actinopterygii", "fish scales",
-                                 "Decapoda (megalope)", 
-                                 "unidentified material",
-                                 "Plantae",
-                                 "unidentified animal"))
+macrobenfh <- allfh %>%
+  dplyr::left_join(macroben %>% 
+                     dplyr::select(PYNAM, RPATH) %>%
+                     setNames(., tolower(names(.)))) %>%
+  dplyr::filter(!is.na(rpath))
 
-NEAMAPprey <- NEAMAPblueprey %>%
-  dplyr::select(COMMON.NAME, SCIENTIFIC.NAME, BLUEFISH) %>%
-  dplyr::filter(!is.na(BLUEFISH)) %>%
-  dplyr::mutate(pynam2 = tolower(SCIENTIFIC.NAME),
-                pynam2 = stringr::str_replace(pynam2, "spp.", "sp")) %>%
-  dplyr::rename(NEAMAP = BLUEFISH)
+megabenfh <- allfh %>%
+  dplyr::left_join(megaben %>% 
+                     dplyr::select(PYNAM, RPATH) %>%
+                     setNames(., tolower(names(.)))) %>%
+  dplyr::filter(!is.na(rpath))
+
+macrobenITIS <- macroben |>
+  dplyr::select(PYNAM, PYCOMNAM, PYSPP) |>
+  dplyr::left_join(ecodata::species_groupings, join_by(PYNAM == SCINAME)) |>
+  dplyr::select(PYNAM, PYCOMNAM, COMNAME, PYSPP, ITISSPP)
+
+megabenITIS <- megaben |>
+  dplyr::select(PYNAM, PYCOMNAM, PYSPP) |>
+  dplyr::left_join(ecodata::species_groupings, join_by(PYNAM == SCINAME)) |>
+  dplyr::select(PYNAM, PYCOMNAM, COMNAME, PYSPP, ITISSPP)
 
 
-NEFSCprey <- NEFSCblueprey %>%
-  dplyr::select(pycomnam2, pynam, BLUEFISH) %>%
-  dplyr::filter(!is.na(BLUEFISH)) %>%
-  dplyr::mutate(pynam2 = tolower(pynam)) %>%
-  dplyr::rename(NEFSC = BLUEFISH)
-
-# new criteria March 2023, >20 observations NEAMAP+NEFSC, but keep mackerel
-# removes the flatfish order (too broad) and unid Urophycis previously in NEAMAP
-blueprey <- NEFSCprey %>% 
-  dplyr::full_join(NEAMAPprey) %>%
-  dplyr::mutate(NEAMAP = ifelse(is.na(NEAMAP), 0, NEAMAP),
-                NEFSC = ifelse(is.na(NEFSC), 0, NEFSC),
-                total = NEFSC + NEAMAP,
-                PREY = ifelse(is.na(SCIENTIFIC.NAME), pynam, SCIENTIFIC.NAME),
-                COMMON = ifelse(is.na(COMMON.NAME), pycomnam2, COMMON.NAME),
-                pynam = ifelse(is.na(pynam), toupper(pynam2), pynam)) %>%
-  dplyr::arrange(desc(total)) %>%
-  dplyr::filter(total>20 | pynam=="SCOMBER SCOMBRUS") %>% # >20 leaves out mackerel
-  dplyr::mutate(COMMON = case_when(pynam=="ILLEX SP" ~ "Shortfin squids",
-                                   pynam2=="teuthida" ~ "Unidentified squids",
-                                   TRUE ~ COMMON)) %>%
-  dplyr::mutate(PREY = stringr::str_to_sentence(PREY),
-                COMMON = stringr::str_to_sentence(COMMON))
-
-
-fh.nefsc.pisc.pisccomplete.blueprey <- fh.nefsc.pisc.pisccomplete %>%
-  mutate(blueprey = case_when(pynam %in% blueprey$pynam ~ "blueprey",
+fh.nefsc.benthivore.complete.macrobenthos <- fh.nefsc.benthivore.complete %>%
+  mutate(macrobenthos = case_when(pynam %in% macrobenITIS$pynam ~ "macroben",
                               TRUE ~ "othprey"))
+
+fh.nefsc.benthivore.complete.megabenthos <- fh.nefsc.benthivore.complete %>%
+  mutate(megabenthos = case_when(pynam %in% megabenITIS$pynam ~ "megaben",
+                                  TRUE ~ "othprey"))
+
 
 ###############################################################################
 # Make the NEFSC dataset aggregating prey based on prey list

@@ -227,18 +227,15 @@ if(!dir.exists(working_dir)) {
   dir.create(working_dir)
 }
 
-# subset for faster testing
-#bluepyagg_stn_fall <- bluepyagg_stn_fall %>% filter(Year<1990)                       
-
 fit <- fit_model(
   settings = settings, 
   extrapolation_list = New_Extrapolation_List,
-  Lat_i = bluepyagg_stn_fall$Lat, 
-  Lon_i = bluepyagg_stn_fall$Lon, 
-  t_i = bluepyagg_stn_fall$Year, 
-  b_i = as_units(bluepyagg_stn_fall[,'Catch_g'], 'g'),
-  a_i = rep(1, nrow(bluepyagg_stn_fall)),
-  v_i = bluepyagg_stn_fall$Vessel,
+  Lat_i = megabenagg_stn_fall$Lat, 
+  Lon_i = megabenagg_stn_fall$Lon, 
+  t_i = megabenagg_stn_fall$Year, 
+  b_i = as_units(megabenagg_stn_fall[,'Catch_g'], 'g'),
+  a_i = rep(1, nrow(megabenagg_stn_fall)),
+  v_i = megabenagg_stn_fall$Vessel,
   #Q_ik = as.matrix(bluepyagg_stn_fall[,c("npiscsp", 
   #                                       "meanpisclen", 
   #                                       "sstfill"
@@ -263,17 +260,14 @@ if(!dir.exists(working_dir)) {
   dir.create(working_dir)
 }                         
   
-# subset for faster testing
-#bluepyagg_stn_spring <- bluepyagg_stn_spring %>% filter(Year<1990) 
-
 fit <- fit_model( settings = settings,  
                  extrapolation_list = New_Extrapolation_List,
-                 Lat_i = bluepyagg_stn_spring[,'Lat'], 
-                 Lon_i = bluepyagg_stn_spring[,'Lon'], 
-                 t_i = bluepyagg_stn_spring[,'Year'], 
-                 b_i = as_units(bluepyagg_stn_spring[,'Catch_g'], 'g'), 
-                 a_i = rep(1, nrow(bluepyagg_stn_spring)),
-                 v_i = bluepyagg_stn_spring$Vessel,
+                 Lat_i = megabenagg_stn_spring[,'Lat'], 
+                 Lon_i = megabenagg_stn_spring[,'Lon'], 
+                 t_i = megabenagg_stn_spring[,'Year'], 
+                 b_i = as_units(megabenagg_stn_spring[,'Catch_g'], 'g'), 
+                 a_i = rep(1, nrow(megabenagg_stn_spring)),
+                 v_i = megabenagg_stn_spring$Vessel,
                  #Q_ik = as.matrix(bluepyagg_stn_spring[,c("npiscsp", 
                  #                                         "meanpisclen", 
                  #                                         "sstfill"

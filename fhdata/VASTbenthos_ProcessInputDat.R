@@ -196,7 +196,7 @@ fh.nefsc.benthivore.complete.megabenthos <- fh.nefsc.benthivore.complete %>%
 ###############################################################################
 # Make the NEFSC dataset aggregating prey based on prey list
 
-bluepyall_stn <- fh.nefsc.pisc.pisccomplete.blueprey %>%
+macrobenall_stn <- fh.nefsc.benthivore.complete.macrobenthos %>%
   #create id linking cruise6_station
   #create season_ng spring and fall Spring=Jan-May, Fall=June-Dec
   mutate(id = paste0(cruise6, "_", station),
@@ -207,48 +207,48 @@ bluepyall_stn <- fh.nefsc.pisc.pisccomplete.blueprey %>%
                                TRUE ~ as.character(NA))
   ) %>%
   dplyr::select(year, season_ng, id, stratum,
-                pynam, pyamtw, pywgti, pyvoli, blueprey, 
+                pynam, pyamtw, pywgti, pyvoli, macrobenthos, 
                 pdcomnam, pdid, pdlen, pdsvol, pdswgt, 
                 beglat, beglon, declat, declon, 
                 bottemp, surftemp, setdepth) %>%
   group_by(id) %>%
-  #mean blueprey g per stomach per tow: sum all blueprey g/n stomachs in tow
-  mutate(bluepywt = case_when(blueprey == "blueprey" ~ pyamtw,
+  #mean macrobenthos g per stomach per tow: sum all macrobenthos g/n stomachs in tow
+  mutate(macrobenpywt = case_when(macrobenthos == "macroben" ~ pyamtw,
                               TRUE ~ 0.0),
-         bluepynam = case_when(blueprey == "blueprey" ~ pynam,
+         macrobenpynam = case_when(macrobenthos == "macroben" ~ pynam,
                                TRUE ~ NA_character_)) 
 
 # Optional: save at prey disaggregated stage for paper
-#saveRDS(bluepyall_stn, here("fhdat/bluepyall_stn.rds"))
+#saveRDS(macrobenall_stn, here("fhdata/macrobenall_stn.rds"))
 
 # Now get station data in one line
-stndat <- bluepyall_stn %>%
+stndat <- macrobenall_stn %>%
   dplyr::select(year, season_ng, id, 
                 beglat, beglon, declat, declon, 
                 bottemp, surftemp, setdepth) %>%
   distinct()
 
-#pisc stomachs in tow count pdid for each pred and sum
-piscstom <- bluepyall_stn %>%
+#benthivore stomachs in tow count pdid for each pred and sum
+benthivorestom <- macrobenall_stn %>%
   group_by(id, pdcomnam) %>%
   summarise(nstompd = n_distinct(pdid)) %>%
   group_by(id) %>%
   summarise(nstomtot = sum(nstompd))
 
 #mean and var pred length per tow
-pisclen <- bluepyall_stn %>%
+benthivorelen <-  macrobenall_stn %>%
   summarise(meanpisclen = mean(pdlen),
             varpisclen = var(pdlen))
 
 # Aggregated prey at station level with predator covariates
-bluepyagg_stn <- bluepyall_stn %>%
-  summarise(sumbluepywt = sum(bluepywt),
-            nbluepysp = n_distinct(bluepynam, na.rm = T),
+macrobenagg_stn <- macrobenall_stn %>%
+  summarise(summacrobenpywt = sum(macrobenpywt),
+            nmacrobenpysp = n_distinct(macrobenpynam, na.rm = T),
             npreysp = n_distinct(pynam),
             npiscsp = n_distinct(pdcomnam)) %>%
-  left_join(piscstom) %>%
-  mutate(meanbluepywt = sumbluepywt/nstomtot) %>%
-  left_join(pisclen) %>%
+  left_join(benthivorestom) %>%
+  mutate(meanmacrobenpywt = summacrobenpywt/nstomtot) %>%
+  left_join(benthivorelen) %>%
   left_join(stndat)
 
 # save at same stage as before, writing over old file
@@ -256,7 +256,7 @@ bluepyagg_stn <- bluepyall_stn %>%
 
 # current dataset, fix declon, add vessel, rename NEFSC
 #nefsc_bluepyagg_stn <- readRDS(here("fhdat/bluepyagg_stn.rds")) %>%
-nefsc_bluepyagg_stn <- bluepyagg_stn %>%
+nefsc_macrobenagg_stn <- macrobenagg_stn %>%
   mutate(declon = -declon,
          vessel = case_when(year<2009 ~ "AL",
                             year>=2009 ~ "HB", 
@@ -266,7 +266,7 @@ nefsc_bluepyagg_stn <- bluepyagg_stn %>%
 # Add NEAMAP to make full aggregated stomach dataset
 
 # Read in NEAMAP updated input from Jim Gartland, reformat with same names
-neamap_bluepreyagg_stn <- read_csv(here("fhdat/NEAMAP_Mean stomach weights_Bluefish Prey_Oct2023.csv")) %>%  
+neamap_macrobenthos_stn <- read_csv(here("fhdata/NEAMAP_Mean Stomach Weights_Macrobenthos prey_wWQ.csv")) %>%  
   mutate(vessel = "NEAMAP") %>%
   rename(id = station,
          sumbluepywt = sumbluepreywt,
@@ -281,7 +281,7 @@ neamap_bluepreyagg_stn <- read_csv(here("fhdat/NEAMAP_Mean stomach weights_Bluef
          declat  = lat,
          declon = lon,
          bottemp = bWT,
-         #surftemp = , 
+         surftemp = SST, 
          setdepth = depthm) 
 
 

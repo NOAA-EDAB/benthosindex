@@ -199,13 +199,13 @@ strata.limits <- as.list(c("AllEPU" = allEPU2,
 
 settings = make_settings( n_x = 500, 
                           Region = "northwest_atlantic",
-                          Version = "VAST_v14_0_1", #needed to prevent error from newer dev version number
+                          #Version = "VAST_v14_0_1", #needed to prevent error from newer dev version number
                           #strata.limits = list('All_areas' = 1:1e5), full area
                           strata.limits = strata.limits,
                           purpose = "index2", 
                           #bias.correct = TRUE,
                           #use_anisotropy = FALSE,
-                          #fine_scale = FALSE,
+                          fine_scale = FALSE,
                           #FieldConfig = FieldConfig,
                           #RhoConfig = RhoConfig,
                           OverdispersionConfig = OverdispersionConfig

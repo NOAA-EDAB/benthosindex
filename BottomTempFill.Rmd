@@ -1,0 +1,82 @@
+---
+title: "Bottom Temperature Filling"
+author: "Sarah Gaichas"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    code_fold: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      message = FALSE,
+                      warning = FALSE)
+library(tidyverse)
+library(tidync)
+library(sf)
+
+```
+
+## Introduction
+
+Similar to the forage index analysis, we will want to explore catchability covariates for the benthos indices.
+
+For benthos, (benthivore predators and benthic prey) bottom temperature is likely a better covariate than surface temperature. 
+
+So we need an alternative source of bottom temperature data for those survey stations that do not have an associated bottom temperature measurement. For the forage index, we kept in situ temperature measurements where they existed and filled with OISST temperatures for the date and nearest spatial location when in situ temperature was missing. We will follow the same logic here.
+
+## Methods
+
+The bottom temperature reanalysis data we have are from Hubert DuPontavice, as used in the Black Sea Bass assessment, the SOE, and other products. I will use similar extraction methods to those posted by Abby Tyrell for the BSB to ensure this is the same source data, even though I am matching a location rather than calculating aggregate metrics.
+
+Abby's and Scott Large's code is here: https://github.com/ScottLarge-NOAA/bsb/blob/main/docs/bsb_2024_update2.Rmd
+
+Let's try extracting from ERDDAP, otherwise we can grab the local files from Scott's repo.
+
+This is Abby and Scott's code:
+
+```{r, eval=FALSE}
+# url <- "http://nefsctest.nmfs.local:8080/erddap/griddap/duPontavice_bottom_temp_local.csv?sea_water_temperature_at_sea_floor%5B(1989-01-01T00:00:00Z):1:(2019-04-01T00:00:00Z)%5D%5B(35.9166666666667):1:(44.4166666666667)%5D%5B(-75.9166666666667):1:(-65.75)%5D"
+
+# data <- read.csv(url) # this should work but seems like NEFSC is choking the download
+data <- read.csv(here::here("data-raw/duPontavice_bottom_temp_local_4d04_943c_b2ef.csv"))
+
+# data2 <- data[[2]][-1,] %>%
+data2 <- data[-1,] %>%
+  tidyr::drop_na() %>%
+  dplyr::mutate(dplyr::across(2:4, as.numeric),
+                dplyr::across(1, lubridate::as_date),
+                year = lubridate::year(time),
+                month = lubridate::month(time)) %>%
+  dplyr::filter(month %in% 2:3) %>%
+  dplyr::rename(value = sea_water_temperature_at_sea_floor)
+```
+
+But I don't have the local files so try this from https://github.com/ScottLarge-NOAA/bsb/blob/main/scripts/bsb_bottom_temp-reanalysis.R 
+
+Test with the file I currently have; doesnt seem to have the same format so nope.
+
+```{r, eval=FALSE}
+data_bt <- tidync("data-raw/bottomtemp/bottom_temp_combined_product_1959_2020.nc") %>% # original file from Hubert, NE shelf
+  hyper_tibble(force = TRUE) %>%
+  mutate(origin = as.Date(paste0(year, "-01-01"), tz = "UTC") - days(1),
+         date = as.Date(day, origin = origin, tz = "UTC"),
+         month = month(date)#,
+         #day = day(date)
+         ) 
+
+
+  #group_by(longitude, latitude, year, month) %>% # calculate monthly mean
+  #summarise(bt_temp = mean(sea_water_temperature_at_sea_floor, na.rm = TRUE))
+
+```
+
+Try viewing the individual year files from Hubert, see if code from the OISST download/conversion can work.
+
+The original files are on google drive [here](https://drive.google.com/drive/folders/1H4eMpdfo3EKnmu0EJFwZyHKt237Y3heW).
+Navigate to EDABranch_Drive/ITD/ERDDAP/Data/Bottom Temp from Hubert Revised by Joe v1
+
+```{r}
+
+```
+

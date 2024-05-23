@@ -78,5 +78,46 @@ Navigate to EDABranch_Drive/ITD/ERDDAP/Data/Bottom Temp from Hubert Revised by J
 
 ```{r}
 
+ncfile <- here::here("data-raw/bottomtemp/bt_revised_metadata_032024/bottom_temp_2020.nc")
+
+### get time info and add to tibble ----
+tunit <- ncmeta::nc_atts(ncfile, "time") %>%
+  dplyr::filter(name == "units") %>%
+  tidyr::unnest(cols = c(value))
+
+# tunit for this file is days since 1950-1-1
+origin <- as.Date("1950-01-01") 
+
+bttest <- tidync::tidync(ncfile) |>
+  tidync::hyper_tibble(force = TRUE) |>
+  dplyr::mutate(date = as.Date(time-1, origin=origin),
+                year = lubridate::year(date),
+                month = lubridate::month(date),
+                day = lubridate::day(date))
+  
+
+# plotting function modified from bluefish SST analysis
+dailybtplot <- function(oneday){
+  ggplot() +
+    geom_tile(data = oneday, aes(x = longitude, y = latitude, fill = sea_water_temperature_at_sea_floor)) +
+    geom_sf(data = ecodata::coast) +
+    #geom_point(data = FishStatsUtils::northwest_atlantic_grid, aes(x = Lon, y = Lat), size=0.05, alpha=0.1) +
+    scale_fill_gradientn(name = "Temp C",
+                         limits = c(0.5, 31),
+                         colours = c(scales::muted("blue"), "white",
+                                     scales::muted("red"), "black")) +
+    coord_sf(xlim = c(-77, -65), ylim = c(35, 45)) + 
+    ecodata::theme_map() +
+    ggtitle(paste("Bottom temp, mm-dd-yyyy:", unique(oneday$month),
+                   unique(oneday$day), unique(oneday$year), sep = " "))
+}
+
+mar122020 <- bttest[bttest$month==3 & bttest$day==12,]
+aug122020 <- bttest[bttest$month==8 & bttest$day==12,]
+
+dailybtplot(mar122020)
+dailybtplot(aug122020)
+
+
 ```
 

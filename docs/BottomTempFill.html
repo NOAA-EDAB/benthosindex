@@ -701,69 +701,70 @@ separating them was dumb.</p>
 <p>Megabenthos test. Need to get month and day back into the datasets
 for this merge. Both NEFSC and NEAMAP.</p>
 <p>Lets do this from the beginning in the
-<code>VASTbenthos_ProcessInputDat.R script</code>.</p>
+<code>VASTbenthos_ProcessInputDat.R script</code>. New agg files
+produced for input here.</p>
 <pre class="r"><code>megabenagg_stn_all &lt;- readRDS(here(&quot;fhdata/megabenagg_stn_all.rds&quot;))
 
 stations &lt;- megabenagg_stn_all %&gt;%
-  dplyr::mutate(day = str_pad(day, 2, pad=&#39;0&#39;),
-                month = str_pad(month, 2, pad=&#39;0&#39;),
-                yrmody = as.numeric(paste0(year, month, day))) %&gt;%
+  #dplyr::mutate(day = str_pad(day, 2, pad=&#39;0&#39;),
+  #              month = str_pad(month, 2, pad=&#39;0&#39;),
+  #              yrmody = as.numeric(paste0(year, month, day))) %&gt;%
   # consider this instead, may not need to pad strings? already date fields in the bt data
-  |&gt; dplyr::mutate(date = as.Date(paste0(year,&quot;-&quot;, month,&quot;-&quot;, day)), numdate = as.numeric(date))
-  
-  dplyr::select(id, declon, declat, year, yrmody) %&gt;%
+  dplyr::mutate(date = as.Date(paste0(year,&quot;-&quot;, month,&quot;-&quot;, day)), numdate = as.numeric(date)) |&gt;
+  dplyr::select(id, declon, declat, year, numdate) %&gt;%
   na.omit() %&gt;%
   sf::st_as_sf(coords=c(&quot;declon&quot;,&quot;declat&quot;), crs=4326, remove=FALSE)
 
 
 
 #list of SST dataframes
-SSTdfs &lt;- list.files(here(&quot;data-raw/gridded/sst_data/&quot;), pattern = &quot;*.rds&quot;)
+BTdfs &lt;- list.files(here(&quot;data-raw/bottomtemp/bt_data/&quot;), pattern = &quot;*.rds&quot;)
 
-dietstn_OISST &lt;- tibble()
+dietstn_mod_bt &lt;- tibble()
 
 
-for(df in SSTdfs){
-  sstdf &lt;- readRDS(paste0(here(&quot;data-raw/gridded/sst_data/&quot;, df)))
-
-  # keep only bluefish dates in SST year
-  stationsyr &lt;- stations %&gt;%
-    filter(year == unique(sstdf$year))
-
-  # keep only sst days in bluefish dataset
-  sstdf_survdays &lt;- sstdf %&gt;%
-    dplyr::mutate(yrmody = as.numeric(paste0(year, month, day)) )%&gt;%
-    dplyr::filter(yrmody %in% unique(stationsyr$yrmody)) %&gt;%
-    dplyr::mutate(year = as.numeric(year),
-                  month = as.numeric(month),
-                  day = as.numeric(day),
-                  declon = Lon,
-                  declat = Lat) %&gt;%
-    dplyr::select(-Lon, -Lat) %&gt;%
-    sf::st_as_sf(coords=c(&quot;declon&quot;,&quot;declat&quot;), crs=4326, remove=FALSE)
-
-  # now join by nearest neighbor and date
-
-  #https://stackoverflow.com/questions/71959927/spatial-join-two-data-frames-by-nearest-feature-and-date-in-r
-
-  yrdietOISST &lt;- do.call(&#39;rbind&#39;, lapply(split(stationsyr, 1:nrow(stationsyr)), function(x) {
-    sf::st_join(x, sstdf_survdays[sstdf_survdays$yrmody == unique(x$yrmody),],
-                #join = st_nearest_feature
-                join = st_nn, k = 1, progress = FALSE
-    )
-  }))
-
-  #   #datatable solution--works but doesnt seem faster?
-  #    df1 &lt;- data.table(stationsyr)
-  #
-  #  .nearest_samedate &lt;- function(x) {
-  #    st_join(st_as_sf(x), sstdf_survdays[sstdf_survdays$yrmody == unique(x$yrmody),], join = st_nearest_feature)
-  #  }
-  # #
-  #  yrdietOISST &lt;- df1[, .nearest_samedate(.SD), by = list(1:nrow(df1))]
-
-  dietstn_OISST &lt;- rbind(dietstn_OISST, yrdietOISST)
-
+for(df in BTdfs){
+  btdf &lt;- readRDS(paste0(here(&quot;data-raw/bottomtemp/bt_data/&quot;, df)))
+  
+  if(unique(btdf$year) %in% unique(stations$year)){
+    # keep only bluefish dates in SST year
+    stationsyr &lt;- stations %&gt;%
+      filter(year == unique(btdf$year))
+    
+    # keep only modeled bt days in survey dataset
+    btdf_survdays &lt;- btdf %&gt;%
+      dplyr::mutate(numdate = as.numeric(date))%&gt;%
+      dplyr::filter(numdate %in% unique(stationsyr$numdate)) %&gt;%
+      dplyr::mutate(year = as.numeric(year),
+                    month = as.numeric(month),
+                    day = as.numeric(day),
+                    declon = longitude,
+                    declat = latitude) %&gt;%
+      dplyr::select(-longitude, -latitude) %&gt;%
+      sf::st_as_sf(coords=c(&quot;declon&quot;,&quot;declat&quot;), crs=4326, remove=FALSE)
+    
+    # now join by nearest neighbor and date
+    
+    #https://stackoverflow.com/questions/71959927/spatial-join-two-data-frames-by-nearest-feature-and-date-in-r
+    
+    yrdietmodBT &lt;- do.call(&#39;rbind&#39;, lapply(split(stationsyr, 1:nrow(stationsyr)), function(x) {
+      sf::st_join(x, btdf_survdays[btdf_survdays$numdate == unique(x$ numdate),],
+                  #join = st_nearest_feature
+                  join = st_nn, k = 1, progress = FALSE
+      )
+    }))
+    
+    #   #datatable solution--works but doesnt seem faster?
+    #    df1 &lt;- data.table(stationsyr)
+    #
+    #  .nearest_samedate &lt;- function(x) {
+    #    st_join(st_as_sf(x), sstdf_survdays[sstdf_survdays$yrmody == unique(x$yrmody),], join = st_nearest_feature)
+    #  }
+    # #
+    #  yrdietOISST &lt;- df1[, .nearest_samedate(.SD), by = list(1:nrow(df1))]
+    
+    dietstn_mod_bt &lt;- rbind(dietstn_mod_bt,  yrdietmodBT)
+  }
 }
 
 #saveRDS(dietstn_OISST, here(&quot;data-raw/dietstn_OISST.rds&quot;))
@@ -774,17 +775,99 @@ for(df in SSTdfs){
 #dietstn_OISST &lt;- readRDS(here(&quot;data-raw/dietstn_OISST.rds&quot;))
 
 
-dietstn_OISST_merge &lt;- dietstn_OISST %&gt;%
+dietstn_mod_bt_merge &lt;- dietstn_mod_bt %&gt;%
   dplyr::rename(declon = declon.x,
                 declat = declat.x,
-                year = year.x,
-                oisst = sst) %&gt;%
-  dplyr::select(id, oisst) %&gt;%
+                year = year.x) %&gt;%
+  dplyr::select(id, mod_bt) %&gt;%
   sf::st_drop_geometry()
 
-bluepyagg_stn_all_OISST &lt;- left_join(bluepyagg_stn_all, dietstn_OISST_merge)
+megabenagg_stn_all_modBT &lt;- left_join(megabenagg_stn_all, dietstn_mod_bt_merge)
 
-saveRDS(bluepyagg_stn_all_OISST, here(&quot;fhdat/bluepyagg_stn_all_OISST_1982-2022.rds&quot;))</code></pre>
+saveRDS(megabenagg_stn_all_modBT, here::here(&quot;fhdata/megabenagg_stn_all_modBT.rds&quot;))</code></pre>
+<p>Same deal for macrobenthos:</p>
+<pre class="r"><code>macrobenagg_stn_all &lt;- readRDS(here(&quot;fhdata/macrobenagg_stn_all.rds&quot;))
+
+stations &lt;- macrobenagg_stn_all %&gt;%
+  #dplyr::mutate(day = str_pad(day, 2, pad=&#39;0&#39;),
+  #              month = str_pad(month, 2, pad=&#39;0&#39;),
+  #              yrmody = as.numeric(paste0(year, month, day))) %&gt;%
+  # consider this instead, may not need to pad strings? already date fields in the bt data
+  dplyr::mutate(date = as.Date(paste0(year,&quot;-&quot;, month,&quot;-&quot;, day)), numdate = as.numeric(date)) |&gt;
+  dplyr::select(id, declon, declat, year, numdate) %&gt;%
+  na.omit() %&gt;%
+  sf::st_as_sf(coords=c(&quot;declon&quot;,&quot;declat&quot;), crs=4326, remove=FALSE)
+
+
+
+#list of SST dataframes
+BTdfs &lt;- list.files(here(&quot;data-raw/bottomtemp/bt_data/&quot;), pattern = &quot;*.rds&quot;)
+
+dietstn_mod_bt &lt;- tibble()
+
+
+for(df in BTdfs){
+  btdf &lt;- readRDS(paste0(here(&quot;data-raw/bottomtemp/bt_data/&quot;, df)))
+  
+  if(unique(btdf$year) %in% unique(stations$year)){
+    # keep only bluefish dates in SST year
+    stationsyr &lt;- stations %&gt;%
+      filter(year == unique(btdf$year))
+    
+    # keep only modeled bt days in survey dataset
+    btdf_survdays &lt;- btdf %&gt;%
+      dplyr::mutate(numdate = as.numeric(date))%&gt;%
+      dplyr::filter(numdate %in% unique(stationsyr$numdate)) %&gt;%
+      dplyr::mutate(year = as.numeric(year),
+                    month = as.numeric(month),
+                    day = as.numeric(day),
+                    declon = longitude,
+                    declat = latitude) %&gt;%
+      dplyr::select(-longitude, -latitude) %&gt;%
+      sf::st_as_sf(coords=c(&quot;declon&quot;,&quot;declat&quot;), crs=4326, remove=FALSE)
+    
+    # now join by nearest neighbor and date
+    
+    #https://stackoverflow.com/questions/71959927/spatial-join-two-data-frames-by-nearest-feature-and-date-in-r
+    
+    yrdietmodBT &lt;- do.call(&#39;rbind&#39;, lapply(split(stationsyr, 1:nrow(stationsyr)), function(x) {
+      sf::st_join(x, btdf_survdays[btdf_survdays$numdate == unique(x$ numdate),],
+                  #join = st_nearest_feature
+                  join = st_nn, k = 1, progress = FALSE
+      )
+    }))
+    
+    #   #datatable solution--works but doesnt seem faster?
+    #    df1 &lt;- data.table(stationsyr)
+    #
+    #  .nearest_samedate &lt;- function(x) {
+    #    st_join(st_as_sf(x), sstdf_survdays[sstdf_survdays$yrmody == unique(x$yrmody),], join = st_nearest_feature)
+    #  }
+    # #
+    #  yrdietOISST &lt;- df1[, .nearest_samedate(.SD), by = list(1:nrow(df1))]
+    
+    dietstn_mod_bt &lt;- rbind(dietstn_mod_bt,  yrdietmodBT)
+  }
+}
+
+#saveRDS(dietstn_OISST, here(&quot;data-raw/dietstn_OISST.rds&quot;))
+
+# Now join with OISST dataset
+
+#bluepyagg_stn_all &lt;- readRDS(here(&quot;fhdat/bluepyagg_stn_all.rds&quot;))
+#dietstn_OISST &lt;- readRDS(here(&quot;data-raw/dietstn_OISST.rds&quot;))
+
+
+dietstn_mod_bt_merge &lt;- dietstn_mod_bt %&gt;%
+  dplyr::rename(declon = declon.x,
+                declat = declat.x,
+                year = year.x) %&gt;%
+  dplyr::select(id, mod_bt) %&gt;%
+  sf::st_drop_geometry()
+
+macrobenagg_stn_all_modBT &lt;- left_join(macrobenagg_stn_all, dietstn_mod_bt_merge)
+
+saveRDS(macrobenagg_stn_all_modBT, here::here(&quot;fhdata/macrobenagg_stn_all_modBT.rds&quot;))</code></pre>
 </div>
 
 

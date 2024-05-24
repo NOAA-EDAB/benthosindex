@@ -29,11 +29,11 @@ So we need an alternative source of bottom temperature data for those survey sta
 
 The bottom temperature reanalysis data we have are from Hubert DuPontavice, as used in the Black Sea Bass assessment, the SOE, and other products. I will use similar extraction methods to those posted by Abby Tyrell for the BSB to ensure this is the same source data, even though I am matching a location rather than calculating aggregate metrics.
 
-Abby's and Scott Large's code is here: https://github.com/ScottLarge-NOAA/bsb/blob/main/docs/bsb_2024_update2.Rmd
+Abby Tyrell's and Scott Large's code is here: https://github.com/ScottLarge-NOAA/bsb/blob/main/docs/bsb_2024_update2.Rmd
 
 Let's try extracting from ERDDAP, otherwise we can grab the local files from Scott's repo.
 
-This is Abby and Scott's code:
+This is Abby and Scott's code; I don't have this original file but this code inspired code that works on my files:
 
 ```{r, eval=FALSE}
 # url <- "http://nefsctest.nmfs.local:8080/erddap/griddap/duPontavice_bottom_temp_local.csv?sea_water_temperature_at_sea_floor%5B(1989-01-01T00:00:00Z):1:(2019-04-01T00:00:00Z)%5D%5B(35.9166666666667):1:(44.4166666666667)%5D%5B(-75.9166666666667):1:(-65.75)%5D"
@@ -54,7 +54,7 @@ data2 <- data[-1,] %>%
 
 But I don't have the local files so try this from https://github.com/ScottLarge-NOAA/bsb/blob/main/scripts/bsb_bottom_temp-reanalysis.R 
 
-Test with the file I currently have; doesnt seem to have the same format so nope.
+Test with the file I currently have; doesnt seem to have the same format so nope. Code here not working but inspired code that does.
 
 ```{r, eval=FALSE}
 data_bt <- tidync("data-raw/bottomtemp/bottom_temp_combined_product_1959_2020.nc") %>% # original file from Hubert, NE shelf
@@ -75,6 +75,10 @@ Try viewing the individual year files from Hubert, see if code from the OISST do
 
 The original files are on google drive [here](https://drive.google.com/drive/folders/1H4eMpdfo3EKnmu0EJFwZyHKt237Y3heW).
 Navigate to EDABranch_Drive/ITD/ERDDAP/Data/Bottom Temp from Hubert Revised by Joe v1
+
+The files are already split by year and clipped to the NE. File name format is `bottom_temp_yyyy.nc`
+
+This code tests reading one in, formatting date fields, and plotting.
 
 ```{r}
 
@@ -119,5 +123,83 @@ dailybtplot(mar122020)
 dailybtplot(aug122020)
 
 
+```
+Save the tibbles as rds and then can read and spatially match using same function as for forage index?
+
+First a function to make the tibble from the nc and reformat date
+
+```{r, eval=FALSE}
+nctotibble <- function(ncfile = ncfile){
+  # tunit for this file is days since 1950-1-1
+  origin <- as.Date("1950-01-01") 
+  
+  bttib <- tidync::tidync(ncfile) |>
+    tidync::hyper_tibble(force = TRUE) |>
+    dplyr::mutate(date = as.Date(time-1, origin=origin),
+                  year = lubridate::year(date),
+                  month = lubridate::month(date),
+                  day = lubridate::day(date))
+  
+  return(bttib)
+}
+
+```
+
+And a loop to save as rds, only do years in the `bt_revised_metadata_032024` folder
+```{r, eval=FALSE}
+years <- 1968:2020
+for(i in years) {
+  name <- here::here("data-raw/bottomtemp/bt_revised_metadata_032024", paste0("bottom_temp_",i, ".nc"))
+  filename <- here::here("data-raw","bottomtemp", "bt_data", paste0("bt", i, ".rds"))
+  text <- knitr::knit_expand(text = "bt{{year}} <- nctotibble(ncfile = name)
+                                     saveRDS(bt{{year}}, filename)",
+                             year = i)
+  print(text)
+  try(eval(parse(text = text)))
+}
+```
+
+Test reading GLORYS files: they have a different time unit. of course
+
+```{r}
+ncfile <- here::here("data-raw/bottomtemp/GLORYS-20240515/glorys_01_30_2020_to_06_30_2021.nc")
+
+### get time info and add to tibble ----
+tunit <- ncmeta::nc_atts(ncfile, "time") %>%
+  dplyr::filter(name == "units") %>%
+  tidyr::unnest(cols = c(value))
+
+# time is seconds since 1970-01-01 00:00:00
+origin <- as.Date("1970-01-01")
+
+# 86400 seconds in a day, according to google
+
+bttest <- tidync::tidync(ncfile) |>
+  tidync::hyper_tibble(force = TRUE) |>
+  dplyr::mutate(date = as.Date((time/86400), origin=origin),
+                year = lubridate::year(date),
+                month = lubridate::month(date),
+                day = lubridate::day(date))
+
+
+
+```
+
+Function to read in the GLORYS years 2021-2023. Split to full years and write them to the same format as 2020 and back. This version has whole file in return, not split to years.
+
+```{r}
+glorysnctotibble <- function(ncfile = ncfile){
+  # time is seconds since 1970-01-01 00:00:00
+  origin <- as.Date("1970-01-01") 
+  
+  bttib <- tidync::tidync(ncfile) |>
+  tidync::hyper_tibble(force = TRUE) |>
+  dplyr::mutate(date = as.Date((time/86400), origin=origin),
+                year = lubridate::year(date),
+                month = lubridate::month(date),
+                day = lubridate::day(date))
+  
+  return(bttib)
+}
 ```
 

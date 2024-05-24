@@ -289,7 +289,18 @@ neamap_macrobenthos_stn <- read_csv(here("fhdata/NEAMAP_Mean Stomach Weights_Mac
          setdepth = depthm) 
 
 # Add NEAMAP month and day information
+NEAMAPstationSST <- read.csv("https://raw.githubusercontent.com/NOAA-EDAB/forageindex/main/fhdat/NEAMAP%20SST_2007_2022.csv")
 
+NEAMAPstations <- NEAMAPstationSST %>%
+  dplyr::mutate(id = station,
+                year = as.numeric(year),
+                month = as.numeric(month),
+                day = as.numeric(day)
+                ) %>%
+  dplyr::select(id, year, month, day) |>
+  dplyr::distinct()
+
+neamap_macrobenthos_stn <- dplyr::left_join(neamap_macrobenthos_stn, NEAMAPstations)
 
 
 # combine NEAMAP and NEFSC
@@ -396,7 +407,19 @@ neamap_megabenthos_stn <- read_csv(here("fhdata/NEAMAP_Mean Stomach Weights_Mega
          setdepth = depthm) 
 
 # Add NEAMAP month and day information
+# done above but uncomment if running separately
+# NEAMAPstationSST <- read.csv("https://raw.githubusercontent.com/NOAA-EDAB/forageindex/main/fhdat/NEAMAP%20SST_2007_2022.csv")
+# 
+# NEAMAPstations <- NEAMAPstationSST %>%
+#   dplyr::mutate(id = station,
+#                 year = as.numeric(year),
+#                 month = as.numeric(month),
+#                 day = as.numeric(day)
+#   ) %>%
+#   dplyr::select(id, year, month, day) |>
+#   dplyr::distinct()
 
+neamap_megabenthos_stn <- dplyr::left_join(neamap_megabenthos_stn, NEAMAPstations)
 
 # combine NEAMAP and NEFSC
 megabenagg_stn_all <-  nefsc_megabenagg_stn %>%

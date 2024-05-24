@@ -197,6 +197,7 @@ fh.nefsc.benthivore.complete.megabenthos <- fh.nefsc.benthivore.complete %>%
 
 ###############################################################################
 # Make the NEFSC macrobenthos dataset aggregating prey based on prey list
+# lets keep the month and day info for the merge with modeled bottom temperature!
 
 macrobenall_stn <- fh.nefsc.benthivore.complete.macrobenthos %>%
   #create id linking cruise6_station
@@ -204,11 +205,12 @@ macrobenall_stn <- fh.nefsc.benthivore.complete.macrobenthos %>%
   mutate(id = paste0(cruise6, "_", station),
          year = as.numeric(year),
          month = as.numeric(month),
+         day = as.numeric(day),
          season_ng = case_when(month <= 6 ~ "SPRING",
                                month >= 7 ~ "FALL",
                                TRUE ~ as.character(NA))
   ) %>%
-  dplyr::select(year, season_ng, id, stratum,
+  dplyr::select(year, month, day, season_ng, id, stratum,
                 pynam, pyamtw, pywgti, pyvoli, macrobenthos, 
                 pdcomnam, pdid, pdlen, pdsvol, pdswgt, 
                 beglat, beglon, declat, declon, 
@@ -225,7 +227,7 @@ macrobenall_stn <- fh.nefsc.benthivore.complete.macrobenthos %>%
 
 # Now get station data in one line
 stndat <- macrobenall_stn %>%
-  dplyr::select(year, season_ng, id, 
+  dplyr::select(year, month, day, season_ng, id, 
                 beglat, beglon, declat, declon, 
                 bottemp, surftemp, setdepth) %>%
   distinct()
@@ -286,6 +288,9 @@ neamap_macrobenthos_stn <- read_csv(here("fhdata/NEAMAP_Mean Stomach Weights_Mac
          surftemp = SST, # new NEAMAP already contains SST
          setdepth = depthm) 
 
+# Add NEAMAP month and day information
+
+
 
 # combine NEAMAP and NEFSC
 macrobenagg_stn_all <-  nefsc_macrobenagg_stn %>%
@@ -307,11 +312,12 @@ megabenall_stn <- fh.nefsc.benthivore.complete.megabenthos %>%
   mutate(id = paste0(cruise6, "_", station),
          year = as.numeric(year),
          month = as.numeric(month),
+         day = as.numeric(day),
          season_ng = case_when(month <= 6 ~ "SPRING",
                                month >= 7 ~ "FALL",
                                TRUE ~ as.character(NA))
   ) %>%
-  dplyr::select(year, season_ng, id, stratum,
+  dplyr::select(year, month, day, season_ng, id, stratum,
                 pynam, pyamtw, pywgti, pyvoli, megabenthos, 
                 pdcomnam, pdid, pdlen, pdsvol, pdswgt, 
                 beglat, beglon, declat, declon, 
@@ -328,7 +334,7 @@ megabenall_stn <- fh.nefsc.benthivore.complete.megabenthos %>%
 
 # Now get station data in one line
 stndat <- megabenall_stn %>%
-  dplyr::select(year, season_ng, id, 
+  dplyr::select(year, month, day, season_ng, id, 
                 beglat, beglon, declat, declon, 
                 bottemp, surftemp, setdepth) %>%
   distinct()
@@ -388,6 +394,8 @@ neamap_megabenthos_stn <- read_csv(here("fhdata/NEAMAP_Mean Stomach Weights_Mega
          bottemp = bWT,
          surftemp = SST, # new NEAMAP already contains SST
          setdepth = depthm) 
+
+# Add NEAMAP month and day information
 
 
 # combine NEAMAP and NEFSC

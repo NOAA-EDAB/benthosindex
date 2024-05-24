@@ -138,14 +138,16 @@ nctotibble <- function(ncfile = ncfile){
     dplyr::mutate(date = as.Date(time-1, origin=origin),
                   year = lubridate::year(date),
                   month = lubridate::month(date),
-                  day = lubridate::day(date))
+                  day = lubridate::day(date)) |>
+    dplyr::rename(mod_bt = sea_water_temperature_at_sea_floor)
   
   return(bttib)
 }
 
 ```
 
-And a loop to save as rds, only do years in the `bt_revised_metadata_032024` folder
+And a loop to save as rds, only do years in the `bt_revised_metadata_032024` folder. And we don't have survey data before 1968 so start there (likely to only use 1980 on).
+
 ```{r, eval=FALSE}
 years <- 1968:2020
 for(i in years) {
@@ -161,7 +163,7 @@ for(i in years) {
 
 Test reading GLORYS files: they have a different time unit. of course
 
-```{r}
+```{r, eval=FALSE}
 ncfile <- here::here("data-raw/bottomtemp/GLORYS-20240515/glorys_01_30_2020_to_06_30_2021.nc")
 
 ### get time info and add to tibble ----
@@ -185,21 +187,193 @@ bttest <- tidync::tidync(ncfile) |>
 
 ```
 
-Function to read in the GLORYS years 2021-2023. Split to full years and write them to the same format as 2020 and back. This version has whole file in return, not split to years.
+Function to read in the GLORYS years 2021-2023. Split to full years and write them to the same format as 2020 and back. This version has whole file in return, not split to years. 
 
-```{r}
+```{r, eval=FALSE}
 glorysnctotibble <- function(ncfile = ncfile){
   # time is seconds since 1970-01-01 00:00:00
   origin <- as.Date("1970-01-01") 
   
   bttib <- tidync::tidync(ncfile) |>
-  tidync::hyper_tibble(force = TRUE) |>
-  dplyr::mutate(date = as.Date((time/86400), origin=origin),
-                year = lubridate::year(date),
-                month = lubridate::month(date),
-                day = lubridate::day(date))
+    tidync::hyper_tibble(force = TRUE) |>
+    dplyr::mutate(date = as.Date((time/86400), origin=origin),
+                  year = lubridate::year(date),
+                  month = lubridate::month(date),
+                  day = lubridate::day(date))|>
+    dplyr::rename(mod_bt = bottomT)
   
   return(bttib)
 }
+```
+
+Maybe its easier to read in both files, then split output to years? This could get way too big in the future but works for now.
+
+```{r, eval=FALSE}
+glfiles <- list.files(path = here::here("data-raw/bottomtemp/GLORYS-20240515"), 
+                    pattern = "^glo",
+                    full.names = TRUE)
+
+allgltib <- purrr::map(glfiles, glorysnctotibble) |>
+  purrr::list_rbind() 
+
+# thanks for your opinions tidyverse, I want list elements named
+yrs <- unique(allgltib$year)
+
+allgltibls <- allgltib |>
+  dplyr::group_by(year) |>
+  dplyr::group_split() 
+  
+#name the list elements by year
+names(allgltibls) <- yrs
+
+#save each year in list to rds  
+purrr::imap(allgltibls, ~saveRDS(.x, file = here::here("data-raw","bottomtemp", "bt_data", paste0("bt", .y, ".rds"))))
+
+```
+
+GLORYS files are much bigger, maybe these aren't clipped to the area?
+
+Plot one; 2021. Correct, includes all the offshore BT we don't use.
+
+```{r}
+
+bt2021 <- readRDS(here::here("data-raw/bottomtemp/bt_data/bt2021.rds"))
+
+oneday <- bt2021[bt2021$month==7 & bt2021$day==4,] 
+
+jan15 <- bt2021[bt2021$month==1 & bt2021$day==15,] 
+
+mar15 <- bt2021[bt2021$month==3 & bt2021$day==15,]
+
+may15 <- bt2021[bt2021$month==5 & bt2021$day==15,]
+
+jul15 <- bt2021[bt2021$month==7 & bt2021$day==15,]
+
+sep15 <- bt2021[bt2021$month==9 & bt2021$day==15,]
+
+nov15 <- bt2021[bt2021$month==11 & bt2021$day==15,]
+
+# plotting function modified from bluefish SST analysis--with changed variable name!
+dailybtplot <- function(oneday){
+  ggplot() +
+    geom_tile(data = oneday, aes(x = longitude, y = latitude, fill = mod_bt)) +
+    geom_sf(data = ecodata::coast) +
+    #geom_point(data = FishStatsUtils::northwest_atlantic_grid, aes(x = Lon, y = Lat), size=0.05, alpha=0.1) +
+    scale_fill_gradientn(name = "Temp C",
+                         limits = c(0.5, 31),
+                         colours = c(scales::muted("blue"), "white",
+                                     scales::muted("red"), "black")) +
+    coord_sf(xlim = c(-77, -65), ylim = c(35, 45)) + 
+    ecodata::theme_map() +
+    ggtitle(paste("Bottom temp, mm-dd-yyyy:", unique(oneday$month),
+                   unique(oneday$day), unique(oneday$year), sep = " "))
+}
+
+
+#dailybtplot(oneday)
+dailybtplot(jan15)
+dailybtplot(mar15)
+dailybtplot(may15)
+dailybtplot(jul15)
+dailybtplot(sep15)
+dailybtplot(nov15)
+
+```
+
+
+Anyway all files now saved in the `data-raw/bottomtemp/bt_data` folder.
+
+Lets try the merge with the survey data, year by year as for the forage index. Have to do this for each dataset, kind of a pain, maybe separating them was dumb.
+
+Megabenthos test. Need to get month and day back into the datasets for this merge. Both NEFSC and NEAMAP.
+
+Lets do this from the beginning in the `VASTbenthos_ProcessInputDat.R script`. 
+
+```{r,eval=FALSE}
+
+megabenagg_stn_all <- readRDS(here("fhdata/megabenagg_stn_all.rds"))
+
+stations <- megabenagg_stn_all %>%
+  dplyr::mutate(day = str_pad(day, 2, pad='0'),
+                month = str_pad(month, 2, pad='0'),
+                yrmody = as.numeric(paste0(year, month, day))) %>%
+  # consider this instead, may not need to pad strings? already date fields in the bt data
+  |> dplyr::mutate(date = as.Date(paste0(year,"-", month,"-", day)), numdate = as.numeric(date))
+  
+  dplyr::select(id, declon, declat, year, yrmody) %>%
+  na.omit() %>%
+  sf::st_as_sf(coords=c("declon","declat"), crs=4326, remove=FALSE)
+
+
+
+#list of SST dataframes
+SSTdfs <- list.files(here("data-raw/gridded/sst_data/"), pattern = "*.rds")
+
+dietstn_OISST <- tibble()
+
+
+for(df in SSTdfs){
+  sstdf <- readRDS(paste0(here("data-raw/gridded/sst_data/", df)))
+
+  # keep only bluefish dates in SST year
+  stationsyr <- stations %>%
+    filter(year == unique(sstdf$year))
+
+  # keep only sst days in bluefish dataset
+  sstdf_survdays <- sstdf %>%
+    dplyr::mutate(yrmody = as.numeric(paste0(year, month, day)) )%>%
+    dplyr::filter(yrmody %in% unique(stationsyr$yrmody)) %>%
+    dplyr::mutate(year = as.numeric(year),
+                  month = as.numeric(month),
+                  day = as.numeric(day),
+                  declon = Lon,
+                  declat = Lat) %>%
+    dplyr::select(-Lon, -Lat) %>%
+    sf::st_as_sf(coords=c("declon","declat"), crs=4326, remove=FALSE)
+
+  # now join by nearest neighbor and date
+
+  #https://stackoverflow.com/questions/71959927/spatial-join-two-data-frames-by-nearest-feature-and-date-in-r
+
+  yrdietOISST <- do.call('rbind', lapply(split(stationsyr, 1:nrow(stationsyr)), function(x) {
+    sf::st_join(x, sstdf_survdays[sstdf_survdays$yrmody == unique(x$yrmody),],
+                #join = st_nearest_feature
+                join = st_nn, k = 1, progress = FALSE
+    )
+  }))
+
+  #   #datatable solution--works but doesnt seem faster?
+  #    df1 <- data.table(stationsyr)
+  #
+  #  .nearest_samedate <- function(x) {
+  #    st_join(st_as_sf(x), sstdf_survdays[sstdf_survdays$yrmody == unique(x$yrmody),], join = st_nearest_feature)
+  #  }
+  # #
+  #  yrdietOISST <- df1[, .nearest_samedate(.SD), by = list(1:nrow(df1))]
+
+  dietstn_OISST <- rbind(dietstn_OISST, yrdietOISST)
+
+}
+
+#saveRDS(dietstn_OISST, here("data-raw/dietstn_OISST.rds"))
+
+# Now join with OISST dataset
+
+#bluepyagg_stn_all <- readRDS(here("fhdat/bluepyagg_stn_all.rds"))
+#dietstn_OISST <- readRDS(here("data-raw/dietstn_OISST.rds"))
+
+
+dietstn_OISST_merge <- dietstn_OISST %>%
+  dplyr::rename(declon = declon.x,
+                declat = declat.x,
+                year = year.x,
+                oisst = sst) %>%
+  dplyr::select(id, oisst) %>%
+  sf::st_drop_geometry()
+
+bluepyagg_stn_all_OISST <- left_join(bluepyagg_stn_all, dietstn_OISST_merge)
+
+saveRDS(bluepyagg_stn_all_OISST, here("fhdat/bluepyagg_stn_all_OISST_1982-2022.rds"))
+
 ```
 

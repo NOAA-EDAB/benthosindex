@@ -466,3 +466,101 @@ saveRDS(macrobenagg_stn_all_modBT, here::here("fhdata/macrobenagg_stn_all_modBT.
 
 ```
 
+How do the in situ bottom temp and modeled bottom temp compare where we have both?
+
+Macrobenthos dataset:
+
+```{r}
+macrobenagg_stn_all_modBT <- readRDS(here::here("fhdata/macrobenagg_stn_all_modBT.rds"))
+
+comparebt <- macrobenagg_stn_all_modBT %>%
+  #dplyr::filter(year>1984)%>%
+  dplyr::select(bottemp, mod_bt) %>%
+  na.omit()
+
+ggplot2::ggplot(comparebt, aes(x=bottemp, y=mod_bt)) +
+  geom_point(color="blue", alpha=0.1)+
+  geom_abline(intercept = 0, slope = 1) +
+  theme_bw() 
+```
+
+Megabenthos dataset: 
+
+```{r}
+
+megabenagg_stn_all_modBT <- readRDS(here::here("fhdata/megabenagg_stn_all_modBT.rds"))
+
+comparebt <- megabenagg_stn_all_modBT %>%
+  #dplyr::filter(year>1984)%>%
+  dplyr::select(bottemp, mod_bt) %>%
+  na.omit()
+
+ggplot2::ggplot(comparebt, aes(x=bottemp, y=mod_bt)) +
+  geom_point(color="blue", alpha=0.1)+
+  geom_abline(intercept = 0, slope = 1) +
+  theme_bw() 
+```
+Macrobenthos by year:
+
+```{r}
+mapbt <- macrobenagg_stn_all_modBT %>%
+  #dplyr::filter(year>1984) %>%
+  dplyr::mutate(btdiff = bottemp-mod_bt) %>%
+  dplyr::select(id, year, season_ng, declon, declat, bottemp, mod_bt, btdiff) 
+
+yrmap <- function(mapyr){
+  ggplot2::ggplot(mapbt |> dplyr::filter(year==mapyr)) +
+  geom_sf(data = ecodata::coast) +
+  coord_sf(xlim = c(-77, -65), ylim = c(35, 45)) + 
+  geom_point(aes(x=declon, y=declat, colour=btdiff)) +
+  scale_color_gradient2(low = "blue",
+                        mid = "green",
+                        high = "purple",
+                        midpoint = 0,
+                        na.value = "yellow") +
+  theme_bw() +
+  facet_wrap(~season_ng) +
+  ggtitle(paste("Bottom temp difference survey-Hubert/GLORYS:", mapyr, sep = " "))
+}
+```
+
+### Bottom temp mismatch by year, macrobenthos data {.tabset}
+
+Map stations by bottom temp match/mismatch for each year. Yellow is missing data that would be filled by modeled bt, and the color range shows how different bottom temp is for stations with both values.
+
+```{r,  results='asis'}
+for(mapyr in 1973:2022){
+  
+    cat("  \n####",  as.character(mapyr),"  \n")
+    print(yrmap(mapyr)) 
+    cat("  \n")   
+    
+  }
+```
+
+### {-}
+
+Megabenthos by year (likely the same as above but visualizing just in case):
+
+```{r}
+mapbt <- megabenagg_stn_all_modBT %>%
+  #dplyr::filter(year>1984) %>%
+  dplyr::mutate(btdiff = bottemp-mod_bt) %>%
+  dplyr::select(id, year, season_ng, declon, declat, bottemp, mod_bt, btdiff) 
+```
+
+### Bottom temp mismatch by year, megabenthos data {.tabset}
+
+Map stations by bottom temp match/mismatch for each year. Yellow is missing data that would be filled by modeled bt, and the color range shows how different bottom temp is for stations with both values.
+
+```{r,  results='asis'}
+for(mapyr in 1973:2022){
+  
+    cat("  \n####",  as.character(mapyr),"  \n")
+    print(yrmap(mapyr)) 
+    cat("  \n")   
+    
+  }
+```
+
+### {-}

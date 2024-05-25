@@ -40,9 +40,9 @@ megabenagg_stn_fall <- megabenagg_stn %>%
                 Lon = declon,
                 meanbenthivorelen,
                 nbenthivoresp,
-                bottemp, #this leaves out many stations for NEFSC
+                #bottemp, #this leaves out many stations for NEFSC
                 #surftemp, #this leaves out many stations for NEFSC
-                mod_bt,
+                mod_bt,#leaves out 2023 NEAMAP, ok for now
                 btfill
   ) %>%
   na.omit() %>%
@@ -64,9 +64,9 @@ megabenagg_stn_spring <- megabenagg_stn %>%
                 Lon = declon,
                 meanbenthivorelen,
                 nbenthivoresp,
-                bottemp, #this leaves out many stations for NEFSC
+                #bottemp, #this leaves out many stations for NEFSC
                 #surftemp, #this leaves out many stations for NEFSC
-                mod_bt,
+                mod_bt,#leaves out 2023 NEAMAP, ok for now
                 btfill
   ) %>%
   na.omit() %>%
@@ -88,9 +88,9 @@ macrobenagg_stn_fall <- macrobenagg_stn %>%
                 Lon = declon,
                 meanbenthivorelen,
                 nbenthivoresp,
-                bottemp, #this leaves out many stations for NEFSC
+                #bottemp, #this leaves out many stations for NEFSC
                 #surftemp, #this leaves out many stations for NEFSC
-                mod_bt,
+                mod_bt,#leaves out 2023 NEAMAP, ok for now
                 btfill
   ) %>%
   na.omit() %>%
@@ -112,9 +112,9 @@ macrobenagg_stn_spring <- macrobenagg_stn %>%
                 Lon = declon,
                 meanbenthivorelen,
                 nbenthivoresp,
-                bottemp, #this leaves out many stations for NEFSC
+                #bottemp, #this leaves out many stations for NEFSC
                 #surftemp, #this leaves out many stations for NEFSC
-                mod_bt,
+                mod_bt,#leaves out 2023 NEAMAP, ok for now
                 btfill
   ) %>%
   na.omit() %>%
@@ -312,7 +312,7 @@ for(season in mod.season){
     
     fit <- fit_model(
       settings = settings, 
-      extrapolation_list = New_Extrapolation_List,
+      #extrapolation_list = New_Extrapolation_List,
       Lat_i = dat$Lat, 
       Lon_i = dat$Lon, 
       t_i = dat$Year, 

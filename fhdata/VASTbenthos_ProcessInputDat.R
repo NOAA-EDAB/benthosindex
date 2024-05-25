@@ -433,190 +433,181 @@ saveRDS(megabenagg_stn_all, here("fhdata/megabenagg_stn_all.rds"))
 # STOP HERE for initial models, explore without modeled temp covariates
 
 # ###############################################################################
-# #Now match stations to OISST
-# 
-# #make an SST dataframe for 2022! Add to saved sst_data in data-raw/gridded
-# 
-# library(sf)
-# library(raster)
-# library(terra)
-# library(nngeo)
-# 
-# # Bastille function from https://github.com/kimberly-bastille/ecopull/blob/main/R/utils.R
-# 
-# nc_to_raster <- function(nc,
-#                          varname,
-#                          extent = c(0, 360, -90, 90),
-#                          crop = raster::extent(280, 300, 30, 50),
-#                          show_images = FALSE) {
-#   
-#   message("Reading .nc as brick...")
-#   
-#   r <- raster::brick(nc, varname = varname)
-#   
-#   message("Setting CRS...")
-#   raster::crs(r) <- "+proj=longlat +lat_1=35 +lat_2=45 +lat_0=40 +lon_0=-77 +x_0=0 +y_0=0 +datum=NAD83 +no_defs +ellps=GRS80 +towgs84=0,0,0"
-#   
-#   # not sure if this is necessary?
-#   raster::extent(r) <- raster::extent(extent)
-#   
-#   if(show_images){
-#     par(mfrow = c(1,2))
-#     raster::plot(r, 1, sub = "Full dataset")
-#   }
-#   
-#   message("Cropping data...")
-#   ne_data <- raster::crop(r, crop)
-#   #ne_data <- raster::rotate(ne_data) add here for future pulls
-#   
-#   if(show_images){
-#     raster::plot(ne_data, 1, sub = "Cropped dataset")
-#     par(mfrow = c(1,1))
-#   }
-#   
-#   message("Done!")
-#   
-#   return(ne_data)
-# }
-# 
-# # function to convert to dataframe based on
-# # https://towardsdatascience.com/transforming-spatial-data-to-tabular-data-in-r-4dab139f311f
-# 
-# raster_to_sstdf <- function(brick,
-#                             rotate=TRUE){
-#   
-#   if(rotate) brick_r <- raster::rotate(brick)
-#   brick_r <- raster::crop(brick_r, raster::extent(-77,-65,35,45))
-#   sstdf <- as.data.frame(raster::rasterToPoints(brick_r, spatial = TRUE))
-#   sstdf <- sstdf %>%
-#     dplyr::rename(Lon = x,
-#                   Lat = y) %>%
-#     tidyr::pivot_longer(cols = starts_with("X"),
-#                         names_to = c("year", "month", "day"),
-#                         names_prefix = "X",
-#                         names_sep = "\\.",
-#                         values_to = "sst",
-#     )
-#   return(sstdf)
-# }
-# 
-# # pull the OISST data as raster brick, modified from 
-# # https://github.com/kimberly-bastille/ecopull/blob/main/.github/workflows/pull_satellite_data.yml
-# 
-# varname <- "sst"
-# 
-# # 1985-2021 previously pulled, processed and stored. add 2022.
-# # add 1981-1984 to extend back in time. No OISST before 1981.
-# # 1981 is only Sept-Dec so don't use
-# 
-# years <- #1982:1984 # 2022
-# for(i in years) {
-#   name <- paste0(i, ".nc")
-#   dir.create(here::here("data-raw","gridded", "sst_data"), recursive = TRUE)
-#   filename <- here::here("data-raw","gridded", "sst_data", paste0("test_", i, ".grd"))
-#   url <- paste0("https://downloads.psl.noaa.gov/Datasets/noaa.oisst.v2.highres/sst.day.mean.", i, ".nc")
-#   download.file(url, destfile = name)
-#   
-#   text <- knitr::knit_expand(text = "test_{{year}} <- nc_to_raster(nc = name, varname = varname)
-#                                      raster::writeRaster(test_{{year}}, filename = filename, overwrite=TRUE)",
-#                              year = i)
-#   print(text)
-#   try(eval(parse(text = text)))
-#   unlink(name) # remove nc file to save space
-#   print(paste("finished",i))
-# }
-# 
-# 
-# # convert raster to dataframe
-# #years <- 2022
-# for(i in years) {
-#   name <- get(paste0("test_",i))
-#   filename <- here::here("data-raw","gridded", "sst_data", paste0("sst", i, ".rds"))
-#   text <- knitr::knit_expand(text = "sst{{year}} <- raster_to_sstdf(brick = name)
-#                                      saveRDS(sst{{year}}, filename)",
-#                              year = i)
-#   print(text)
-#   try(eval(parse(text = text)))
-# }
-# #read in diet data with month day fields
-# 
-# #bluepyagg_stn_all <- readRDS(here("fhdat/bluepyagg_stn_all.rds"))
-# 
-# stations <- bluepyagg_stn_all %>%
-#   dplyr::mutate(day = str_pad(day, 2, pad='0'),
-#                 month = str_pad(month, 2, pad='0'),
-#                 yrmody = as.numeric(paste0(year, month, day))) %>%
-#   dplyr::select(id, declon, declat, year, yrmody) %>%
-#   na.omit() %>%
-#   sf::st_as_sf(coords=c("declon","declat"), crs=4326, remove=FALSE) 
-# 
-# 
-# 
-# #list of SST dataframes
-# SSTdfs <- list.files(here("data-raw/gridded/sst_data/"), pattern = "*.rds")
-# 
-# dietstn_OISST <- tibble()
-# 
-# 
-# for(df in SSTdfs){
-#   sstdf <- readRDS(paste0(here("data-raw/gridded/sst_data/", df)))
-#   
-#   # keep only bluefish dates in SST year
-#   stationsyr <- stations %>%
-#     filter(year == unique(sstdf$year))
-#   
-#   # keep only sst days in bluefish dataset
-#   sstdf_survdays <- sstdf %>%
-#     dplyr::mutate(yrmody = as.numeric(paste0(year, month, day)) )%>%
-#     dplyr::filter(yrmody %in% unique(stationsyr$yrmody)) %>%
-#     dplyr::mutate(year = as.numeric(year),
-#                   month = as.numeric(month),
-#                   day = as.numeric(day),
-#                   declon = Lon,
-#                   declat = Lat) %>%
-#     dplyr::select(-Lon, -Lat) %>%
-#     sf::st_as_sf(coords=c("declon","declat"), crs=4326, remove=FALSE)  
-#   
-#   # now join by nearest neighbor and date
-#   
-#   #https://stackoverflow.com/questions/71959927/spatial-join-two-data-frames-by-nearest-feature-and-date-in-r      
-#   
-#   yrdietOISST <- do.call('rbind', lapply(split(stationsyr, 1:nrow(stationsyr)), function(x) {
-#     sf::st_join(x, sstdf_survdays[sstdf_survdays$yrmody == unique(x$yrmody),],
-#                 #join = st_nearest_feature
-#                 join = st_nn, k = 1, progress = FALSE
-#     )
-#   }))
-#   
-#   #   #datatable solution--works but doesnt seem faster?
-#   #    df1 <- data.table(stationsyr)
-#   #   
-#   #  .nearest_samedate <- function(x) {
-#   #    st_join(st_as_sf(x), sstdf_survdays[sstdf_survdays$yrmody == unique(x$yrmody),], join = st_nearest_feature)
-#   #  }
-#   # # 
-#   #  yrdietOISST <- df1[, .nearest_samedate(.SD), by = list(1:nrow(df1))]
-#   
-#   dietstn_OISST <- rbind(dietstn_OISST, yrdietOISST)
-#   
-# }
-# 
-# #saveRDS(dietstn_OISST, here("data-raw/dietstn_OISST.rds"))
-# 
-# # Now join with OISST dataset
-# 
-# #bluepyagg_stn_all <- readRDS(here("fhdat/bluepyagg_stn_all.rds"))
-# #dietstn_OISST <- readRDS(here("data-raw/dietstn_OISST.rds"))
-# 
-# 
-# dietstn_OISST_merge <- dietstn_OISST %>%
-#   dplyr::rename(declon = declon.x,
-#                 declat = declat.x,
-#                 year = year.x,
-#                 oisst = sst) %>%
-#   dplyr::select(id, oisst) %>%
-#   sf::st_drop_geometry()
-# 
-# bluepyagg_stn_all_OISST <- left_join(bluepyagg_stn_all, dietstn_OISST_merge)
-# 
-# saveRDS(bluepyagg_stn_all_OISST, here("fhdat/bluepyagg_stn_all_OISST_1982-2022.rds"))
+
+# functions that read in bottom temperature nc files are in 
+# https://noaa-edab.github.io/benthosindex/BottomTempFill.html
+# assuming that those files exist and are in the folder data-raw/bottomtemp/bt_data
+# the following will merge them with the data above
+
+#######################################################################
+# Macrobenthos
+
+macrobenagg_stn_all <- readRDS(here("fhdata/macrobenagg_stn_all.rds"))
+
+stations <- macrobenagg_stn_all %>%
+  #dplyr::mutate(day = str_pad(day, 2, pad='0'),
+  #              month = str_pad(month, 2, pad='0'),
+  #              yrmody = as.numeric(paste0(year, month, day))) %>%
+  # consider this instead, may not need to pad strings? already date fields in the bt data
+  dplyr::mutate(date = as.Date(paste0(year,"-", month,"-", day)), numdate = as.numeric(date)) |>
+  dplyr::select(id, declon, declat, year, numdate) %>%
+  na.omit() %>%
+  sf::st_as_sf(coords=c("declon","declat"), crs=4326, remove=FALSE)
+
+
+
+#list of SST dataframes
+BTdfs <- list.files(here("data-raw/bottomtemp/bt_data/"), pattern = "*.rds")
+
+dietstn_mod_bt <- tibble()
+
+
+for(df in BTdfs){
+  btdf <- readRDS(paste0(here("data-raw/bottomtemp/bt_data/", df)))
+  
+  if(unique(btdf$year) %in% unique(stations$year)){
+    # keep only bluefish dates in SST year
+    stationsyr <- stations %>%
+      filter(year == unique(btdf$year))
+    
+    # keep only modeled bt days in survey dataset
+    btdf_survdays <- btdf %>%
+      dplyr::mutate(numdate = as.numeric(date))%>%
+      dplyr::filter(numdate %in% unique(stationsyr$numdate)) %>%
+      dplyr::mutate(year = as.numeric(year),
+                    month = as.numeric(month),
+                    day = as.numeric(day),
+                    declon = longitude,
+                    declat = latitude) %>%
+      dplyr::select(-longitude, -latitude) %>%
+      sf::st_as_sf(coords=c("declon","declat"), crs=4326, remove=FALSE)
+    
+    # now join by nearest neighbor and date
+    
+    #https://stackoverflow.com/questions/71959927/spatial-join-two-data-frames-by-nearest-feature-and-date-in-r
+    
+    yrdietmodBT <- do.call('rbind', lapply(split(stationsyr, 1:nrow(stationsyr)), function(x) {
+      sf::st_join(x, btdf_survdays[btdf_survdays$numdate == unique(x$ numdate),],
+                  #join = st_nearest_feature
+                  join = st_nn, k = 1, progress = FALSE
+      )
+    }))
+    
+    #   #datatable solution--works but doesnt seem faster?
+    #    df1 <- data.table(stationsyr)
+    #
+    #  .nearest_samedate <- function(x) {
+    #    st_join(st_as_sf(x), sstdf_survdays[sstdf_survdays$yrmody == unique(x$yrmody),], join = st_nearest_feature)
+    #  }
+    # #
+    #  yrdietOISST <- df1[, .nearest_samedate(.SD), by = list(1:nrow(df1))]
+    
+    dietstn_mod_bt <- rbind(dietstn_mod_bt,  yrdietmodBT)
+  }
+}
+
+#saveRDS(dietstn_OISST, here("data-raw/dietstn_OISST.rds"))
+
+# Now join with OISST dataset
+
+#bluepyagg_stn_all <- readRDS(here("fhdat/bluepyagg_stn_all.rds"))
+#dietstn_OISST <- readRDS(here("data-raw/dietstn_OISST.rds"))
+
+
+dietstn_mod_bt_merge <- dietstn_mod_bt %>%
+  dplyr::rename(declon = declon.x,
+                declat = declat.x,
+                year = year.x) %>%
+  dplyr::select(id, mod_bt) %>%
+  sf::st_drop_geometry()
+
+macrobenagg_stn_all_modBT <- left_join(macrobenagg_stn_all, dietstn_mod_bt_merge)
+
+saveRDS(macrobenagg_stn_all_modBT, here::here("fhdata/macrobenagg_stn_all_modBT.rds"))
+
+
+#######################################################################
+# Megabenthos
+
+megabenagg_stn_all <- readRDS(here("fhdata/megabenagg_stn_all.rds"))
+
+stations <- megabenagg_stn_all %>%
+  #dplyr::mutate(day = str_pad(day, 2, pad='0'),
+  #              month = str_pad(month, 2, pad='0'),
+  #              yrmody = as.numeric(paste0(year, month, day))) %>%
+  # consider this instead, may not need to pad strings? already date fields in the bt data
+  dplyr::mutate(date = as.Date(paste0(year,"-", month,"-", day)), numdate = as.numeric(date)) |>
+  dplyr::select(id, declon, declat, year, numdate) %>%
+  na.omit() %>%
+  sf::st_as_sf(coords=c("declon","declat"), crs=4326, remove=FALSE)
+
+
+
+#list of SST dataframes
+BTdfs <- list.files(here("data-raw/bottomtemp/bt_data/"), pattern = "*.rds")
+
+dietstn_mod_bt <- tibble()
+
+
+for(df in BTdfs){
+  btdf <- readRDS(paste0(here("data-raw/bottomtemp/bt_data/", df)))
+  
+  if(unique(btdf$year) %in% unique(stations$year)){
+    # keep only bluefish dates in SST year
+    stationsyr <- stations %>%
+      filter(year == unique(btdf$year))
+    
+    # keep only modeled bt days in survey dataset
+    btdf_survdays <- btdf %>%
+      dplyr::mutate(numdate = as.numeric(date))%>%
+      dplyr::filter(numdate %in% unique(stationsyr$numdate)) %>%
+      dplyr::mutate(year = as.numeric(year),
+                    month = as.numeric(month),
+                    day = as.numeric(day),
+                    declon = longitude,
+                    declat = latitude) %>%
+      dplyr::select(-longitude, -latitude) %>%
+      sf::st_as_sf(coords=c("declon","declat"), crs=4326, remove=FALSE)
+    
+    # now join by nearest neighbor and date
+    
+    #https://stackoverflow.com/questions/71959927/spatial-join-two-data-frames-by-nearest-feature-and-date-in-r
+    
+    yrdietmodBT <- do.call('rbind', lapply(split(stationsyr, 1:nrow(stationsyr)), function(x) {
+      sf::st_join(x, btdf_survdays[btdf_survdays$numdate == unique(x$ numdate),],
+                  #join = st_nearest_feature
+                  join = st_nn, k = 1, progress = FALSE
+      )
+    }))
+    
+    #   #datatable solution--works but doesnt seem faster?
+    #    df1 <- data.table(stationsyr)
+    #
+    #  .nearest_samedate <- function(x) {
+    #    st_join(st_as_sf(x), sstdf_survdays[sstdf_survdays$yrmody == unique(x$yrmody),], join = st_nearest_feature)
+    #  }
+    # #
+    #  yrdietOISST <- df1[, .nearest_samedate(.SD), by = list(1:nrow(df1))]
+    
+    dietstn_mod_bt <- rbind(dietstn_mod_bt,  yrdietmodBT)
+  }
+}
+
+#saveRDS(dietstn_OISST, here("data-raw/dietstn_OISST.rds"))
+
+# Now join with OISST dataset
+
+#bluepyagg_stn_all <- readRDS(here("fhdat/bluepyagg_stn_all.rds"))
+#dietstn_OISST <- readRDS(here("data-raw/dietstn_OISST.rds"))
+
+
+dietstn_mod_bt_merge <- dietstn_mod_bt %>%
+  dplyr::rename(declon = declon.x,
+                declat = declat.x,
+                year = year.x) %>%
+  dplyr::select(id, mod_bt) %>%
+  sf::st_drop_geometry()
+
+megabenagg_stn_all_modBT <- left_join(megabenagg_stn_all, dietstn_mod_bt_merge)
+
+saveRDS(megabenagg_stn_all_modBT, here::here("fhdata/megabenagg_stn_all_modBT.rds"))

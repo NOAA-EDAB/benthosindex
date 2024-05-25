@@ -365,6 +365,8 @@ Suggestion: start with mean predator size at a station, number of predator speci
 
 When I looked at bottom temperature data in the NEFSC survey, we had as many missing values as for surface temperature, so it is likely we will want to fill these with other data sources to avoid losing information. Hubert DuPontavice provided his reconstruction of bottom temperatures based on GLORYS and ROMS outputs for the NEUS. The full 1.1 GB dataset is stored locally in data-raw/bottomtemp and the identical source file is [here on google drive](https://drive.google.com/file/d/11HanY5Tzu--77HevCV5gRdNvaAvuYVYU/view?usp=share_link).
 
+Bottom temp has been filled in, see documentation and comparisons [here](https://noaa-edab.github.io/benthosindex/BottomTempFill.html).
+
 # Modeling
 
 ## VAST model setup
@@ -380,6 +382,24 @@ This script tests fall and spring models, no covariates but estimating full spat
 https://github.com/NOAA-EDAB/benthosindex/blob/main/VASTscripts/VASTunivariate_megabenthos_allsurvs.R 
 
 ## VAST model selection
+
+Lets do the same model selection as previously. Two stages, first looking at spatial, spatio-temporal random effects and the second looking at covariates. For completeness, do selection for both models.
+
+Model selection script is 
+https://github.com/NOAA-EDAB/benthosindex/blob/main/VASTscripts/VASTunivariate_benthos_modselection.R
+
+Stage 1 results
+
+```{r}
+
+```
+
+Stage 2 results
+
+```{r}
+
+```
+
 
 ## VAST model bias correction and results
 

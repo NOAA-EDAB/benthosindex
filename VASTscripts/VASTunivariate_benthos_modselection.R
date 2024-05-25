@@ -10,87 +10,112 @@ library(VAST)
 
 # this dataset created in SSTmethods.Rmd
 
-bluepyagg_stn <- readRDS(here::here("fhdat/bluepyagg_stn_all_OISST.rds"))
+megabenagg_stn <- readRDS(here::here("fhdata/megabenagg_stn_all_modBT.rds"))
+
+macrobenagg_stn <- readRDS(here::here("fhdata/macrobenagg_stn_all_modBT.rds"))
 
 # make SST column that uses surftemp unless missing or 0
 # there are 3 surftemp 0 values in the dataset, all with oisst > 15
-bluepyagg_stn <- bluepyagg_stn %>%
-  dplyr::mutate(sstfill = ifelse((is.na(surftemp)|surftemp==0), oisst, surftemp))
+megabenagg_stn <- megabenagg_stn %>%
+  dplyr::mutate(btfill = ifelse((is.na(bottemp)|bottemp==0), mod_bt, bottemp))
 
-#bluepyagg_stn <- bluepyagg_pred_stn
-
-# filter to assessment years at Tony's suggestion
+macrobenagg_stn <- macrobenagg_stn %>%
+  dplyr::mutate(btfill = ifelse((is.na(bottemp)|bottemp==0), mod_bt, bottemp))
 
 # code Vessel as AL=0, HB=1, NEAMAP=2
 
-bluepyagg_stn_all <- bluepyagg_stn %>%
-  #ungroup() %>%
-  filter(#season_ng == "FALL", # Annual model for MRIP index
-         year > 1984) %>%
-  mutate(AreaSwept_km2 = 1, #Elizabeth's code
-         #declon = -declon already done before neamap merge
-         Vessel = as.numeric(as.factor(vessel))-1
-         ) %>% 
-  dplyr::select(Catch_g = meanbluepywt, #use bluepywt for individuals input in example
-         Year = year,
-         Vessel,
-         AreaSwept_km2,
-         Lat = declat,
-         Lon = declon,
-         meanpisclen,
-         npiscsp,
-         #bottemp, #this leaves out many stations for NEFSC
-         #surftemp, #this leaves out many stations for NEFSC
-         oisst,
-         sstfill
-         ) %>%
-  na.omit() %>%
-  as.data.frame()
-
-bluepyagg_stn_fall <- bluepyagg_stn %>%
+megabenagg_stn_fall <- megabenagg_stn %>%
   #ungroup() %>%
   filter(season_ng == "FALL", # Annual model for MRIP index
-    year > 1984) %>%
+    year > 1979) %>%
   mutate(AreaSwept_km2 = 1, #Elizabeth's code
          #declon = -declon already done before neamap merge
          Vessel = as.numeric(as.factor(vessel))-1
   ) %>% 
-  dplyr::select(Catch_g = meanbluepywt, #use bluepywt for individuals input in example
+  dplyr::select(Catch_g = meanmegabenpywt, #use megabenwt for individuals input in example
                 Year = year,
                 Vessel,
                 AreaSwept_km2,
                 Lat = declat,
                 Lon = declon,
-                meanpisclen,
-                npiscsp,
-                #bottemp, #this leaves out many stations for NEFSC
+                meanbenthivorelen,
+                nbenthivoresp,
+                bottemp, #this leaves out many stations for NEFSC
                 #surftemp, #this leaves out many stations for NEFSC
-                oisst,
-                sstfill
+                mod_bt,
+                btfill
   ) %>%
   na.omit() %>%
   as.data.frame()
 
-bluepyagg_stn_spring <- bluepyagg_stn %>%
+megabenagg_stn_spring <- megabenagg_stn %>%
   #ungroup() %>%
   filter(season_ng == "SPRING", # Annual model for MRIP index
-    year > 1984) %>%
+    year > 1979) %>%
   mutate(AreaSwept_km2 = 1, #Elizabeth's code
          #declon = -declon already done before neamap merge
          Vessel = as.numeric(as.factor(vessel))-1
   ) %>% 
-  dplyr::select(Catch_g = meanbluepywt, #use bluepywt for individuals input in example
+  dplyr::select(Catch_g = meanmegabenpywt, #use megabenwt for individuals input in example
                 Year = year,
                 Vessel,
                 AreaSwept_km2,
                 Lat = declat,
                 Lon = declon,
-                meanpisclen,
-                npiscsp,
-                #bottemp, #this leaves out many stations for NEFSC
+                meanbenthivorelen,
+                nbenthivoresp,
+                bottemp, #this leaves out many stations for NEFSC
                 #surftemp, #this leaves out many stations for NEFSC
-                oisst,
-                sstfill
+                mod_bt,
+                btfill
+  ) %>%
+  na.omit() %>%
+  as.data.frame()
+
+macrobenagg_stn_fall <- macrobenagg_stn %>%
+  #ungroup() %>%
+  filter(season_ng == "FALL", # Annual model for MRIP index
+         year > 1979) %>%
+  mutate(AreaSwept_km2 = 1, #Elizabeth's code
+         #declon = -declon already done before neamap merge
+         Vessel = as.numeric(as.factor(vessel))-1
+  ) %>% 
+  dplyr::select(Catch_g = meanmacrobenpywt, #use megabenwt for individuals input in example
+                Year = year,
+                Vessel,
+                AreaSwept_km2,
+                Lat = declat,
+                Lon = declon,
+                meanbenthivorelen,
+                nbenthivoresp,
+                bottemp, #this leaves out many stations for NEFSC
+                #surftemp, #this leaves out many stations for NEFSC
+                mod_bt,
+                btfill
+  ) %>%
+  na.omit() %>%
+  as.data.frame()
+
+macrobenagg_stn_spring <- macrobenagg_stn %>%
+  #ungroup() %>%
+  filter(season_ng == "SPRING", # Annual model for MRIP index
+         year > 1979) %>%
+  mutate(AreaSwept_km2 = 1, #Elizabeth's code
+         #declon = -declon already done before neamap merge
+         Vessel = as.numeric(as.factor(vessel))-1
+  ) %>% 
+  dplyr::select(Catch_g = meanmacrobenpywt, #use megabenwt for individuals input in example
+                Year = year,
+                Vessel,
+                AreaSwept_km2,
+                Lat = declat,
+                Lon = declon,
+                meanbenthivorelen,
+                nbenthivoresp,
+                bottemp, #this leaves out many stations for NEFSC
+                #surftemp, #this leaves out many stations for NEFSC
+                mod_bt,
+                btfill
   ) %>%
   na.omit() %>%
   as.data.frame()
@@ -104,109 +129,45 @@ bluepyagg_stn_spring <- bluepyagg_stn %>%
 # could also leave out SS?
 # CHECK if these EPUs match what we use in SOE
 
-bfinshore <- c(3020, 3050, 3080, 3110, 3140, 3170, 3200, 3230, 
-              3260, 3290, 3320, 3350, 3380, 3410, 3440, 3450, 3460)
-
-bfoffshore <- c(1010, 1730, 1690, 1650, 1050, 1060, 1090, 1100, 1250, 1200, 1190, 1610)
-
 MAB <- c(1010:1080, 1100:1120, 1600:1750, 3010:3450, 3470, 3500, 3510)
 GB  <- c(1090, 1130:1210, 1230, 1250, 3460, 3480, 3490, 3520:3550)
 GOM <- c(1220, 1240, 1260:1290, 1360:1400, 3560:3830)
 SS  <- c(1300:1352, 3840:3990)
 
-MABGBinshore <- c(3010:3450, 3460, 3470, 3480, 3490, 3500, 3510, 3520:3550)
-
-MABGBoffshore <- c(1010:1080, 1090, 1100:1120,1130:1210, 1230, 1250, 1600:1750)
-
-coast3nmbuffst <- readRDS(here::here("spatialdat/coast3nmbuffst.rds"))
-
-MAB2 <- coast3nmbuffst %>% 
+MAB2 <- FishStatsUtils::northwest_atlantic_grid %>% 
   dplyr::filter(stratum_number %in% MAB) %>%
-  dplyr::select(stratum_number2) %>%
+  dplyr::select(stratum_number) %>%
   dplyr::distinct()
-
-# MAB state waters
-MAB2state <- MAB2 %>%
-  dplyr::filter(stratum_number2 %% 10 == 1) 
-
-# MAB federal waters
-MAB2fed <- MAB2 %>%
-  dplyr::filter(stratum_number2 %% 10 == 2) 
 
 # Georges Bank EPU
-GB2 <- coast3nmbuffst %>% 
+GB2 <- FishStatsUtils::northwest_atlantic_grid %>% 
   dplyr::filter(stratum_number %in% GB) %>%
-  dplyr::select(stratum_number2) %>%
+  dplyr::select(stratum_number) %>%
   dplyr::distinct()
 
-# GB state waters
-GB2state <- GB2 %>%
-  dplyr::filter(stratum_number2 %% 10 == 1) 
-
-#GB federal waters
-GB2fed <- GB2 %>%
-  dplyr::filter(stratum_number2 %% 10 == 2) 
-
-# whole bluefish domain MABG
-MABGB2 <- dplyr::bind_rows(MAB2, GB2)
-
-# MABGB state waters
-MABGBstate <- dplyr::bind_rows(MAB2state, GB2state)
-
-# MABGB federal waters
-MABGBfed <- dplyr::bind_rows(MAB2fed, GB2fed)
-
 # gulf of maine EPU (for SOE)
-GOM2 <- coast3nmbuffst %>%
+GOM2 <- FishStatsUtils::northwest_atlantic_grid %>% 
   dplyr::filter(stratum_number %in% GOM) %>%
-  dplyr::select(stratum_number2) %>%
+  dplyr::select(stratum_number) %>%
   dplyr::distinct()
 
 # scotian shelf EPU (for SOE)
-SS2 <- coast3nmbuffst %>%
+SS2 <- FishStatsUtils::northwest_atlantic_grid %>%  
   dplyr::filter(stratum_number %in% SS) %>%
-  dplyr::select(stratum_number2) %>%
+  dplyr::select(stratum_number) %>%
   dplyr::distinct()
 
-# previous bluefish strata
-bfinshore2 <- coast3nmbuffst %>%
-  dplyr::filter(stratum_number %in% bfinshore) %>%
-  dplyr::select(stratum_number2) %>%
-  dplyr::distinct()
-
-# additional new bluefish strata 2022
-bfoffshore2 <- coast3nmbuffst %>%
-  dplyr::filter(stratum_number %in% bfoffshore) %>%
-  dplyr::select(stratum_number2) %>%
-  dplyr::distinct()
-
-# all bluefish strata
-bfall2 <- dplyr::bind_rows(bfinshore2, bfoffshore2)
-
-# albatross inshore strata
-albinshore2 <- coast3nmbuffst %>%
-  dplyr::filter(stratum_number %in% setdiff(MABGBinshore, bfinshore)) %>%
-  dplyr::select(stratum_number2) %>%
-  dplyr::distinct()
-
-# offshore of all bluefish survey strata
-MABGBothoffshore2 <- coast3nmbuffst %>%
-  dplyr::filter(stratum_number %in% setdiff(MABGBoffshore, bfoffshore)) %>%
-  dplyr::select(stratum_number2) %>%
-  dplyr::distinct()
-
-# needed to cover the whole northwest atlantic grid
-allother2 <- coast3nmbuffst %>%
-  dplyr::filter(!stratum_number %in% c(MAB, GB, GOM, SS)) %>%
-  dplyr::select(stratum_number2) %>%
-  dplyr::distinct()
+# needed to cover the whole northwest atlantic grid--lets try without
+# allother2 <- coast3nmbuffst %>%
+#   dplyr::filter(!stratum_number %in% c(MAB, GB, GOM, SS)) %>%
+#   dplyr::select(stratum_number2) %>%
+#   dplyr::distinct()
 
 # all epus
-allEPU2 <- coast3nmbuffst %>%
+allEPU2 <- FishStatsUtils::northwest_atlantic_grid %>%  
   dplyr::filter(stratum_number %in% c(MAB, GB, GOM, SS)) %>%
-  dplyr::select(stratum_number2) %>%
+  dplyr::select(stratum_number) %>%
   dplyr::distinct()
-
 
 # Model selection 1 (spatial, spatio-temporal effects, no covariates) options and naming:
 # Use_REML = TRUE in fit_model
@@ -259,27 +220,29 @@ OverdispersionConfig	<- c("eta1"=0, "eta2"=0)
 # eta2 = vessel effects on prey weight
 
 strata.limits <- as.list(c("AllEPU" = allEPU2, 
-                           "MABGB" = MABGB2,
-                           "MABGBstate" = MABGBstate,
-                           "MABGBfed" = MABGBfed,
+                           #"MABGB" = MABGB2,
+                           #"MABGBstate" = MABGBstate,
+                           #"MABGBfed" = MABGBfed,
                            "MAB" = MAB2,
                            "GB" = GB2,
                            "GOM" = GOM2,
-                           "bfall" = bfall2,
-                           "bfin" = bfinshore2,
-                           "bfoff" = bfoffshore2,
-                           "MABGBalbinshore" = albinshore2,
-                           "MABGBothoffshore" = MABGBothoffshore2,
-                           "allother" = allother2))
+                           "SS" = SS2
+                           #"bfall" = bfall2,
+                           #"bfin" = bfinshore2,
+                           #"bfoff" = bfoffshore2,
+                           #"MABGBalbinshore" = albinshore2,
+                           #"MABGBothoffshore" = MABGBothoffshore2,
+                           #"allother" = allother2
+                           ))
 
-# run all with custom extrapolation list just in case that makes a difference
-New_Extrapolation_List <- readRDS(here::here("spatialdat/CustomExtrapolationList.rds"))
 
 # list of data, settings, and directory for output for each option
 
-mod.season <- c("all_500", "fall_500", "spring_500") #includes n knots
+mod.season <- c("megaben_fall_500", "megaben_spring_500",
+                "macroben_fall_500", "macroben_spring_500") #includes n knots
 
-mod.dat <- list(bluepyagg_stn_all, bluepyagg_stn_fall, bluepyagg_stn_spring)
+mod.dat <- list(megabenagg_stn_fall, megabenagg_stn_spring,
+                macrobenagg_stn_fall, macrobenagg_stn_spring)
 
 names(mod.dat) <- mod.season
 
@@ -316,7 +279,7 @@ names(mod.use_anistropy) <- mod.config
 
 for(season in mod.season){
   
-  season <- season # c("annual_500_lennosst_ALLsplit")
+  season <- season 
   
   dat <- mod.dat[[season]]
   
@@ -324,7 +287,7 @@ for(season in mod.season){
     
     name <- paste0(season,"_", config)
     
-    working_dir <- here::here(sprintf("pyindex_modsel1/allagg_%s/", name))
+    working_dir <- here::here(sprintf("pyindex_modsel1/%s/", name))
     
     if(!dir.exists(working_dir)) {
       dir.create(working_dir)

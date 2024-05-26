@@ -369,18 +369,18 @@ for(season in mod.season){
   dat <- mod.dat[[season]]
   
   Q_ikbase  <-  NULL
-  Q_iklen <- as.matrix(dat[,c("meanpisclen")])
-  Q_iknum <- as.matrix(dat[,c("npiscsp")])
-  Q_iklennum <- as.matrix(dat[,c("meanpisclen", "npiscsp")])
-  Q_iksst <- as.matrix(dat[,c("sstfill")])
-  Q_iklensst <- as.matrix(dat[,c("meanpisclen", "sstfill")])
-  Q_iknumsst <- as.matrix(dat[,c("npiscsp", "sstfill")])
-  Q_iklennumsst <- as.matrix(dat[,c("meanpisclen", "npiscsp", "sstfill")])
+  Q_iklen <- as.matrix(dat[,c("meanbenthivorelen")])
+  Q_iknum <- as.matrix(dat[,c("nbenthivoresp")])
+  Q_iklennum <- as.matrix(dat[,c("meanbenthivorelen", "nbenthivoresp")])
+  Q_ikbt <- as.matrix(dat[,c("btfill")])
+  Q_iklenbt <- as.matrix(dat[,c("meanbenthivorelen", "btfill")])
+  Q_iknumbt <- as.matrix(dat[,c("nbenthivoresp", "btfill")])
+  Q_iklennumbt <- as.matrix(dat[,c("meanbenthivorelen", "nbenthivoresp", "btfill")])
   
   mod.Qik <- list(Q_ikbase, Q_iklen, 
                   Q_iknum, Q_iklennum,
-                  Q_iksst, Q_iklensst, 
-                  Q_iknumsst, Q_iklennumsst,
+                  Q_ikbt, Q_iklenbt, 
+                  Q_iknumbt, Q_iklennumbt,
                   Q_ikbase, Q_ikbase)
   
   names(mod.Qik) <- mod.covar
@@ -389,7 +389,7 @@ for(season in mod.season){
     
     name <- paste0(season,"_", covar)
     
-    working_dir <- here::here(sprintf("pyindex_modsel2/allagg_%s/", name))
+    working_dir <- here::here(sprintf("pyindex_modsel2/%s/", name))
     
     if(!dir.exists(working_dir)) {
       dir.create(working_dir)

@@ -418,7 +418,7 @@ for(season in mod.season){
     
     fit <- fit_model(
       settings = settings, 
-      extrapolation_list = New_Extrapolation_List,
+      #extrapolation_list = New_Extrapolation_List,
       Lat_i = dat$Lat, 
       Lon_i = dat$Lon, 
       t_i = dat$Year, 

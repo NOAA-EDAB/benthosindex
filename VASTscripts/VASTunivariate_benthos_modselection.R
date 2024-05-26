@@ -340,8 +340,8 @@ for(season in mod.season){
 
 mod.covar <- c("base", "len", 
                "num", "lennum", 
-               "sst", "lensst", 
-               "numsst", "lennumsst",
+               "bt", "lenbt", 
+               "numbt", "lennumbt",
                "eta10", "eta11")
 
 OverdispersionConfig	<- c("eta1"=0, "eta2"=0)

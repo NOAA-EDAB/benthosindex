@@ -8,72 +8,73 @@ library(VAST)
 
 #Read in data, separate spring and fall, and rename columns for VAST:
 
-# this dataset created in fhdata/VASTbenthos_ProcessInputDat.R
+# this dataset created in SSTmethods.Rmd
 
-megabenagg_stn <- readRDS(here::here("fhdata/megabenagg_stn_all.rds"))
+megabenagg_stn <- readRDS(here::here("fhdata/megabenagg_stn_all_modBT.rds"))
 
 # make SST column that uses surftemp unless missing or 0
 # there are 3 surftemp 0 values in the dataset, all with oisst > 15
-#megabenagg_stn <- megabenagg_stn %>%
-#  dplyr::mutate(sstfill = ifelse((is.na(surftemp)|surftemp==0), oisst, surftemp))
+megabenagg_stn <- megabenagg_stn %>%
+  dplyr::mutate(btfill = ifelse((is.na(bottemp)|bottemp==0), mod_bt, bottemp))
 
 # code Vessel as AL=0, HB=1, NEAMAP=2
 
 megabenagg_stn_fall <- megabenagg_stn %>%
   #ungroup() %>%
-  filter(season_ng == "FALL",
+  filter(season_ng == "FALL", # Annual model for MRIP index
          year > 1979) %>%
   mutate(AreaSwept_km2 = 1, #Elizabeth's code
          #declon = -declon already done before neamap merge
          Vessel = as.numeric(as.factor(vessel))-1
-         ) %>% 
-  dplyr::select(Catch_g = meanmegabenpywt, #use bluepywt for individuals input in example
-         Year = year,
-         Vessel,
-         AreaSwept_km2,
-         Lat = declat,
-         Lon = declon,
-         meanbenthivorelen,
-         nbenthivoresp #,
-         #bottemp, #this leaves out many stations for NEFSC
-         #surftemp, #this leaves out many stations for NEFSC
-         #oisst,
-         #sstfill
-         ) %>%
+  ) %>% 
+  dplyr::select(Catch_g = meanmegabenpywt, #use megabenwt for individuals input in example
+                Year = year,
+                Vessel,
+                AreaSwept_km2,
+                Lat = declat,
+                Lon = declon,
+                meanbenthivorelen,
+                nbenthivoresp,
+                #bottemp, #this leaves out many stations for NEFSC
+                #surftemp, #this leaves out many stations for NEFSC
+                mod_bt,#leaves out 2023 NEAMAP, ok for now
+                btfill
+  ) %>%
   na.omit() %>%
   as.data.frame()
 
 megabenagg_stn_spring <- megabenagg_stn %>%
-  filter(season_ng == "SPRING",
+  #ungroup() %>%
+  filter(season_ng == "SPRING", # Annual model for MRIP index
          year > 1979) %>%
-  mutate(AreaSwept_km2 =1, #Elizabeth's code
+  mutate(AreaSwept_km2 = 1, #Elizabeth's code
          #declon = -declon already done before neamap merge
          Vessel = as.numeric(as.factor(vessel))-1
-         ) %>% 
-  dplyr::select(Catch_g = meanmegabenpywt,
-         Year = year,
-         Vessel,
-         AreaSwept_km2,
-         Lat = declat,
-         Lon = declon,
-         meanbenthivorelen,
-         nbenthivoresp #,
-         #bottemp, #this leaves out many stations for NEFSC
-         #surftemp, #this leaves out many stations for NEFSC
-         #oisst,
-         #sstfill
-         ) %>%
+  ) %>% 
+  dplyr::select(Catch_g = meanmegabenpywt, #use megabenwt for individuals input in example
+                Year = year,
+                Vessel,
+                AreaSwept_km2,
+                Lat = declat,
+                Lon = declon,
+                meanbenthivorelen,
+                nbenthivoresp,
+                #bottemp, #this leaves out many stations for NEFSC
+                #surftemp, #this leaves out many stations for NEFSC
+                mod_bt,#leaves out 2023 NEAMAP, ok for now
+                btfill
+  ) %>%
   na.omit() %>%
   as.data.frame()
 
 
-# Make settings (turning off bias.correct to save time for example)
+# Make settings 
 # NEFSC strata limits https://github.com/James-Thorson-NOAA/VAST/issues/302
 
 # use only MAB, GB, GOM, SS EPUs 
-# leave out south of Cape Hatteras at Elizabeth's suggestion
+# leave out south of Cape Hatteras 
 # could also leave out SS?
-# CHECK if these EPUs match what we use in SOE
+
 
 MAB <- c(1010:1080, 1100:1120, 1600:1750, 3010:3450, 3470, 3500, 3510)
 GB  <- c(1090, 1130:1210, 1230, 1250, 3460, 3480, 3490, 3520:3550)
@@ -116,21 +117,18 @@ allEPU2 <- FishStatsUtils::northwest_atlantic_grid %>%
   dplyr::distinct()
 
 # configs
-FieldConfig <- c(
-  "Omega1"   = 0,   # number of spatial variation factors (0, 1, AR1)
-  "Epsilon1" = 0,   # number of spatio-temporal factors
-  "Omega2"   = 0, 
-  "Epsilon2" = 0
-) 
+# older type, below current, should be functionally the same
+# FieldConfig <- c(
+#   "Omega1"   = 0,   # number of spatial variation factors (0, 1, AR1)
+#   "Epsilon1" = 0,   # number of spatio-temporal factors
+#   "Omega2"   = 0, 
+#   "Epsilon2" = 0
+# ) 
 
-# Model selection options, FieldConfig default (all IID)
-# Season_knots + suffix below 
-# _base         No vessel overdispersion or length/number covariates  (ensure same dataset)  
-# _len          Predator mean length covariate
-# _no           Number of predator species covariate
-# _lenno        Predator mean length and number of predator species covariates
-# _eta10        Overdispersion (vessel effect) in first linear predictor (prey encounter)
-# _eta11        Overdispersion (vessel effect) in both linear predictors (prey wt)
+# all random effects are on
+FieldConfig <- matrix( "IID", ncol=2, nrow=3, 
+                        dimnames=list(c("Omega","Epsilon","Beta"),c("Component_1","Component_2")))
+
 
 RhoConfig <- c(
   "Beta1" = 0,      # temporal structure on years (intercepts) 
@@ -172,11 +170,11 @@ settings = make_settings( n_x = 500,
                           #strata.limits = list('All_areas' = 1:1e5), full area
                           strata.limits = strata.limits,
                           purpose = "index2", 
-                          bias.correct = FALSE,
-                          #use_anisotropy = FALSE,
-                          fine_scale = FALSE,
-                          #FieldConfig = FieldConfig,
-                          #RhoConfig = RhoConfig,
+                          bias.correct = TRUE,
+                          use_anisotropy = TRUE,
+                          fine_scale = TRUE,
+                          FieldConfig = FieldConfig,
+                          RhoConfig = RhoConfig,
                           OverdispersionConfig = OverdispersionConfig
                           )
 
@@ -188,7 +186,7 @@ settings = make_settings( n_x = 500,
 #########################################################
 # Run model fall
 
-season <- c("fall_500_test")
+season <- c("fall_500_cov")
 
 working_dir <- here::here(sprintf("pyindex/megabenthos_%s/", season))
 
@@ -205,10 +203,9 @@ fit <- fit_model(
   b_i = as_units(megabenagg_stn_fall[,'Catch_g'], 'g'),
   a_i = rep(1, nrow(megabenagg_stn_fall)),
   v_i = megabenagg_stn_fall$Vessel,
-  #Q_ik = as.matrix(bluepyagg_stn_fall[,c("npiscsp", 
-  #                                       "meanpisclen", 
-  #                                       "sstfill"
-  #                                       )]),
+  Q_ik = as.matrix(megabenagg_stn_fall[,c("meanbenthivorelen", 
+                                          "nbenthivoresp", 
+                                          "btfill")]),
   #Use_REML = TRUE,
   working_dir = paste0(working_dir, "/"))
 
@@ -221,7 +218,7 @@ plot( fit,
 ######################################################
 # Run model spring
 
-season <- c("spring_500_test")
+season <- c("spring_500_cov")
 
 working_dir <- here::here(sprintf("pyindex/megabenthos_%s/", season))
 
@@ -237,10 +234,9 @@ fit <- fit_model( settings = settings,
                  b_i = as_units(megabenagg_stn_spring[,'Catch_g'], 'g'), 
                  a_i = rep(1, nrow(megabenagg_stn_spring)),
                  v_i = megabenagg_stn_spring$Vessel,
-                 #Q_ik = as.matrix(bluepyagg_stn_spring[,c("npiscsp", 
-                 #                                         "meanpisclen", 
-                 #                                         "sstfill"
-                 #                                         )]),
+                 Q_ik = as.matrix(megabenagg_stn_spring[,c("meanbenthivorelen", 
+                                                           "nbenthivoresp", 
+                                                           "btfill")]),
                 # Use_REML = TRUE,
                  working_dir = paste0(working_dir, "/"))
 

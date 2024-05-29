@@ -53,3 +53,8 @@ rsconnect/
 
 # local huge files
 *.nc
+
+testing/
+data-raw/bottomtemp/bt2020_hubert.rds
+data-raw/Table 1.docx
+

@@ -375,11 +375,13 @@ Univariate or multivariate? First lets try separate univariate models for each o
 
 Do we want to separate seasons or try an annual model? I guess it depends on how the Rpaths are set up.
 
-DECISION: Fall is how the GOM is parameterized so start with that.
+DECISION: Fall is how the GOM is parameterized so start with that. Doing spring too.
 
-This script tests fall and spring models, no covariates but estimating full spatial and spatio-temporal RE and anistotropy. 
+These scripts tested fall and spring models, no covariates but estimating full spatial and spatio-temporal RE and anistotropy (current versions run with covariates and bias correction, linked below). 
 
-https://github.com/NOAA-EDAB/benthosindex/blob/main/VASTscripts/VASTunivariate_megabenthos_allsurvs.R 
+https://github.com/NOAA-EDAB/benthosindex/blob/fc878aa03f4b744dc87407d4348fce8abdeb82d8/VASTscripts/VASTunivariate_macrobenthos_allsurvs.R
+
+https://github.com/NOAA-EDAB/benthosindex/blob/fc878aa03f4b744dc87407d4348fce8abdeb82d8/VASTscripts/VASTunivariate_megabenthos_allsurvs.R
 
 ## VAST model selection
 
@@ -442,12 +444,32 @@ getmodinfo <- function(d.name){
   rho_epsilon2 <- as.numeric(as.character(settings[(which(settings[,1]=="$RhoConfig")+4),2]))
   
   # read parameter estimates, object is called parameter_Estimates
-  load(file.path(d.name, "parameter_estimates.RData"))
-  
-  AIC <- parameter_estimates$AIC[1]  
-  converged <- parameter_estimates$Convergence_check[1]
-  fixedcoeff <- unname(parameter_estimates$number_of_coefficients[2])
-  randomcoeff <- unname(parameter_estimates$number_of_coefficients[3])
+  if(file.exists(file.path(d.name, "parameter_estimates.RData"))) {
+    load(file.path(d.name, "parameter_estimates.RData"))
+    
+    AIC <- parameter_estimates$AIC[1]  
+    converged <- parameter_estimates$Convergence_check[1]
+    fixedcoeff <- unname(parameter_estimates$number_of_coefficients[2])
+    randomcoeff <- unname(parameter_estimates$number_of_coefficients[3])
+    
+  }else if(file.exists(file.path(d.name, "parameter_estimates.txt"))){
+    
+    reptext <- readLines(file.path(d.name, "parameter_estimates.txt"))
+    
+    AIC <- as.double(reptext[grep(reptext, pattern = "AIC")+1])
+    converged <- reptext[grep(reptext, pattern = "Convergence_check")+1]
+    fixedcoeff <- as.integer(stringr::str_split(reptext[grep(reptext, pattern = "number_of_coefficients")+2], 
+                                     boundary("word"))[[1]][2])
+    randomcoeff <- as.integer(stringr::str_split(reptext[grep(reptext, pattern = "number_of_coefficients")+2], 
+                                     boundary("word"))[[1]][3])
+    
+  }else{
+    
+    AIC <- NA_real_
+    converged <- NA_character_
+    fixedcoeff <- NA_integer_
+    randomcoeff <- NA_integer_
+  }
   
   #index <- read.csv(file.path(d.name, "Index.csv"))
   
@@ -542,12 +564,86 @@ flextable::flextable(modselect %>%
   flextable::set_table_properties(layout = "autofit", width = 1)
 ```
 
+Using REML, models including spatial and spatio-temporal random effects as well as anisotropy were best supported by the data. This was true for the spring dataset and the fall dataset for both macrobenthos and megabenthos. 
+
+All models in stage 2 included spatial and spatio-temporal random effects and anisotropy. 
+
+
 ### Stage 2 results
 
-```{r}
+For the second step of model selection with different combinations of vessel effects and or catchability covariates, "modname" in Table Sb\@ref(tab:modsel2) follows a similar pattern as above, with  all prey aggregated ("allagg" for all models), season ("all" for annual models of months 1-12, "fall" for models of months 7-12, and "spring" for models of months 1-6), number of knots (500 for all models), and which vessel effects or covariates were included. The names for model options and associated VAST model settings are: 
+
+Model selection 2 (covariates) options, FieldConfig default (all IID), with anisotropy:
+
+1.  "_base" =          No vessel overdispersion or length/number covariates   
+1.  "_len" =           Predator mean length covariate
+1.  "_num" =           Number of predator species covariate
+1.  "_lennum" =        Predator mean length and number of predator species covariates
+1.  "_sst" =           Combined in situ and OISST covariate
+1.  "_lensst" =        Predator mean length and SST covariates
+1.  "_numsst" =        Number of predator species and SST covariates
+1.  "_lennumsst" =     Predator mean length, number of predator species, and SST covariates
+1.  "_eta10" =         Overdispersion (vessel effect) in first linear predictor (prey encounter)
+1.  "_eta11" =         Overdispersion (vessel effect) in both linear predictors (prey encounter and weight)
+
+
+```{r modsel2}
+# from each output folder in pyindex, 
+outdir <- here("pyindex_modsel2")
+moddirs <- list.dirs(outdir) 
+moddirs <- moddirs[-1]
+# keep folder name
+modnames <- list.dirs(outdir, full.names = FALSE)
+
+modcompare2 <- purrr::map_dfr(moddirs, getmodinfo)
+
+modselect2 <- modcompare2 %>%
+  dplyr::mutate(season = case_when(str_detect(modname, "_fall_") ~ "Fall",
+                            str_detect(modname, "spring") ~ "Spring",
+                            str_detect(modname, "_all_") ~ "Annual",
+                            TRUE ~ as.character(NA))) %>%
+  dplyr::mutate(converged2 = case_when(str_detect(converged, "no evidence") ~ "likely",
+                                str_detect(converged, "is likely not") ~ "unlikely",
+                                TRUE ~ as.character(NA))) %>%
+    dplyr::mutate(bengroup = case_when(str_detect(modname, "macroben") ~ "macrobenthos",
+                                str_detect(modname, "megaben") ~ "megabenthos",
+                                TRUE ~ as.character(NA))) %>%
+  dplyr::group_by(bengroup, season) %>%
+  dplyr::mutate(deltaAIC = AIC-min(AIC, na.rm = TRUE)) %>%
+  dplyr::select(modname, season, deltaAIC, fixedcoeff,
+         randomcoeff, use_anisotropy, 
+         omega1, omega2, epsilon1, epsilon2, 
+         beta1, beta2, AIC, converged2) %>%
+  dplyr::arrange(season, AIC)
+
+# DT::datatable(modselect2, rownames = FALSE, 
+#               options= list(pageLength = 50, scrollX = TRUE),
+#               caption = "Comparison of delta AIC values for alternative vessel effects and catchability covariates. See text for model descriptions.")
+
+flextable::flextable(modselect2%>%
+                       dplyr::select(-c(use_anisotropy, 
+         omega1, omega2, epsilon1, epsilon2, 
+         beta1, beta2))) %>%
+  flextable::set_header_labels(modname = "Model name",
+                               season = "Season",
+                               deltaAIC = "dAIC",
+                               fixedcoeff = "N fixed coefficients",
+                               randomcoeff = "N random coefficients",
+                               converged2 = "Convergence") |>
+  flextable::set_caption("Comparison of delta AIC (dAIC) values for alternative vessel effects and catchability covariates. See text for model descriptions associated with each model name.") %>%
+  flextable::fontsize(size = 9, part = "all") %>%
+  flextable::colformat_double(digits = 2) |>
+  flextable::set_table_properties(layout = "autofit", width = .9)
+
 
 ```
 
+Overall, combinations of catchability covariates were better supported by the data than vessel effects. Model comparisons above led us to the best model fit using mean predator length, number of predator species, and bottom temperature at a survey station as catchability covariates. 
 
 ## VAST model bias correction and results
+
+Scripts for this are https://github.com/NOAA-EDAB/benthosindex/blob/main/VASTscripts/VASTunivariate_megabenthos_allsurvs.R and https://github.com/NOAA-EDAB/benthosindex/blob/main/VASTscripts/VASTunivariate_macrobenthos_allsurvs.R 
+
+
+
 

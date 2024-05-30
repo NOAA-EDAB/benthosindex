@@ -309,10 +309,10 @@ datatable(benthivores, rownames = FALSE,
                          scrollX = TRUE,
                          fixedColumns = list(leftColumns = 1)))
 
-saveRDS(benthivores, here::here("data/benthivorelist.rds"))
+# no need to save this every time
+#saveRDS(benthivores, here::here("data/benthivorelist.rds"))
 
 ```
-
 
 ## Which surveys?
 
@@ -324,7 +324,7 @@ As of January 2024, predator and prey lists are established enough for a NEAMAP 
 
 Add ITISSPP to prey lists where possible
 
-```{r}
+```{r, eval=FALSE}
 macrobenITIS <- macroben |>
   dplyr::select(PYNAM, PYCOMNAM, PYSPP) |>
   dplyr::left_join(ecodata::species_groupings, join_by(PYNAM == SCINAME)) |>
@@ -566,6 +566,8 @@ flextable::flextable(modselect %>%
 
 Using REML, models including spatial and spatio-temporal random effects as well as anisotropy were best supported by the data. This was true for the spring dataset and the fall dataset for both macrobenthos and megabenthos. 
 
+Full outputs from stage 1 mmodel selection are posted to google drive [here](https://drive.google.com/drive/folders/1hiSkfavmvnSx0baCczty0upjFmK6YHin?usp=drive_link). 
+
 All models in stage 2 included spatial and spatio-temporal random effects and anisotropy. 
 
 
@@ -579,10 +581,10 @@ Model selection 2 (covariates) options, FieldConfig default (all IID), with anis
 1.  "_len" =           Predator mean length covariate
 1.  "_num" =           Number of predator species covariate
 1.  "_lennum" =        Predator mean length and number of predator species covariates
-1.  "_sst" =           Combined in situ and OISST covariate
-1.  "_lensst" =        Predator mean length and SST covariates
-1.  "_numsst" =        Number of predator species and SST covariates
-1.  "_lennumsst" =     Predator mean length, number of predator species, and SST covariates
+1.  "_bt" =           Combined in situ and model interpolated bottom temp covariate
+1.  "_lenbt" =        Predator mean length and bottom temp covariates
+1.  "_numbt" =        Number of predator species and bottom temp covariates
+1.  "_lennumbt" =     Predator mean length, number of predator species, and bottom temp covariates
 1.  "_eta10" =         Overdispersion (vessel effect) in first linear predictor (prey encounter)
 1.  "_eta11" =         Overdispersion (vessel effect) in both linear predictors (prey encounter and weight)
 
@@ -640,10 +642,12 @@ flextable::flextable(modselect2%>%
 
 Overall, combinations of catchability covariates were better supported by the data than vessel effects. Model comparisons above led us to the best model fit using mean predator length, number of predator species, and bottom temperature at a survey station as catchability covariates. 
 
+Full results from model selection for covariates are posted to the google drive [here](https://drive.google.com/drive/folders/1xT7Pt8zzvQOsqwJifT_VI5hvl_pQzrjM?usp=drive_link).
+
 ## VAST model bias correction and results
 
 Scripts for this are https://github.com/NOAA-EDAB/benthosindex/blob/main/VASTscripts/VASTunivariate_megabenthos_allsurvs.R and https://github.com/NOAA-EDAB/benthosindex/blob/main/VASTscripts/VASTunivariate_macrobenthos_allsurvs.R 
 
-
+Results have been posted to the google drive [here](https://drive.google.com/drive/folders/1mhoSNmmK0rE374ofBk2iUDmbjcErIRvA?usp=drive_link). See BenthosResults for the initial views and interpretation.
 
 

@@ -1,0 +1,26 @@
+---
+title: 'Benthos Indices: Results'
+author: "Sarah Gaichas"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    code_fold: hide
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      message = FALSE,
+                      warning = FALSE)
+
+library(tidyverse)
+library(here)
+library(DT)
+```
+
+# Introduction
+
+Models for macrobenthos and megabenthos were run for spring and fall using all spatial and spatio-temporal random effects, and three catchability covariates: mean predator length at the location, number of predator species at the location, and bottom temperature at the location. 
+
+See workflow document for details. 
+
+

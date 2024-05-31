@@ -30,6 +30,37 @@ See [workflow document](https://noaa-edab.github.io/benthosindex/WorkflowDecisio
 
 ## Counts of stations total and with prey
 
+```{r}
+
+```
+
+
+## Spatial distribution of stations 
+
+```{r}
+# from each output folder in pyindex, 
+outdir <- here::here("pyindex")
+moddirs <- list.dirs(outdir)
+moddirs <- moddirs[-1]
+```
+
+Spatial coverage for stomachs in fall, both groups (same set of predators, same stations)
+
+```{r}
+mapfall <- paste0(moddirs[1], "/Data_by_year.png")
+
+knitr::include_graphics(mapfall) 
+```
+
+Spatial coverage for stomachs in spring, both groups (same set of predators, same stations)
+
+```{r}
+mapspring <- paste0(moddirs[2], "/Data_by_year.png")
+
+knitr::include_graphics(mapspring) 
+```
+
+
 ## Model selection
 
 See [workflow document](https://noaa-edab.github.io/benthosindex/WorkflowDecisions.html) for details.
@@ -66,12 +97,6 @@ getmodindex <- function(d.name){
   return(out)
 }
 
-# from each output folder in pyindex, 
-outdir <- here::here("pyindex")
-moddirs <- list.dirs(outdir)
-moddirs <- moddirs[-1]
-
-
 modcompareindex <- purrr::map_dfr(moddirs, getmodindex)
 
 ```
@@ -92,7 +117,7 @@ benthostsmean <- splitoutput %>%
 
 ```
 
-Do we have `ecodata` trends in any time series?
+Do we have `ecodata` trends in any time series? Some. Driven by early 80s spike?
 
 ```{r, fig.height=8}
 
@@ -267,7 +292,7 @@ ggplot(benthostsmean |> filter(Season =="spring"),
 
 ```
 
-Scale comparisons by season, any difference macro and megabenthos?
+Scale comparisons by season, any difference macro and megabenthos? Yes, way more macrobenthos, as expected.
 
 ```{r, fig.height=8}
 
@@ -314,4 +339,60 @@ ggplot(splitoutput |> filter(Season =="spring"),
 
 ```
 
+# Center of gravity exploration
+
+Has benthos shifted along the coast?
+
+```{r, eval=FALSE}
+
+library(FishStatsUtils)
+
+getcogVAST <- function(d.name){
+  
+  fit <- VAST::reload_model(readRDS(paste0(d.name,"/fit.rds")))
+  
+  dir.create(paste0(d.name,"/test"))
+  
+  cogout <- FishStatsUtils::plot_range_index(Sdreport = fit$parameter_estimates$SD, 
+                                             Report = fit$Report, 
+                                             TmbData = fit$data_list,
+                                             year_labels = as.numeric(fit$year_labels),
+                                             years_to_plot = fit$years_to_plot,
+                                             Znames = colnames(fit$data_list$Z_xm),
+                                             PlotDir = paste0(d.name,"/test")) #already have plots, will delete this directory
+  
+  saveRDS(cogout, paste0(d.name,"/cogout.rds"))
+  
+  unlink(paste0(d.name,"/test"), recursive=TRUE) #removes directory with unneeded plots
+  
+}
+
+purrr::map(moddirs, getcogVAST)
+```
+
+Center of gravity plots with `ecodata` trends
+
+```{r}
+
+plotcog <- function(d.name){
+  
+  cogout <- readRDS(paste0(d.name,"/cogout.rds"))
+  modpath <- unlist(str_split(d.name, pattern = "/"))
+  modname <- modpath[length(modpath)]
+  
+  cogdat <- as.data.frame(cogout$COG_Table) |>
+    dplyr::mutate(direction = ifelse(m==1, "Eastward", "Northward"))
+  
+  ggplot2::ggplot(cogdat, ggplot2::aes(x = Year, y = COG_hat)) + 
+    ggplot2::geom_point() + 
+    ecodata::geom_gls() + 
+    ggplot2::labs(y = "Center of gravity, km") +
+    ggplot2::facet_wrap(~direction, scales = "free_y") + 
+    ecodata::theme_facet()+
+    ggplot2::ggtitle(modname)
+}
+
+purrr::map(moddirs, plotcog)
+
+```
 

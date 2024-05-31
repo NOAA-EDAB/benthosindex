@@ -439,4 +439,21 @@ plotcog <- function(d.name){
 purrr::map(moddirs, plotcog)
 
 ```
+Density maps
+
+```{r, , results = "asis"}
+for(d.name in moddirs){
+  
+  modpath <- unlist(str_split(d.name, pattern = "/"))
+  modname <- modpath[length(modpath)]
+  
+  cat(modname, "\n")
+  cat(paste0("![](",d.name, "/ln_density-predicted.png)"))
+  cat("\n\n")
+  
+}
+  
+  
+                        
+```
 

@@ -13,6 +13,7 @@ knitr::opts_chunk$set(echo = TRUE,
                       warning = FALSE)
 
 library(tidyverse)
+theme_set(theme_bw())
 library(here)
 library(DT)
 ```
@@ -21,6 +22,296 @@ library(DT)
 
 Models for macrobenthos and megabenthos were run for spring and fall using all spatial and spatio-temporal random effects, and three catchability covariates: mean predator length at the location, number of predator species at the location, and bottom temperature at the location. 
 
-See workflow document for details. 
+# Methods
+
+See [workflow document](https://noaa-edab.github.io/benthosindex/WorkflowDecisions.html) for details. 
+
+# Results
+
+## Counts of stations total and with prey
+
+## Model selection
+
+See [workflow document](https://noaa-edab.github.io/benthosindex/WorkflowDecisions.html) for details.
+
+## Model results
+
+```{r}
+stratlook <- data.frame(Stratum = c("Stratum_1",
+                                    "Stratum_2",
+                                    "Stratum_3",
+                                    "Stratum_4",
+                                    "Stratum_5"),
+                        Region  = c("AllEPU", 
+                                    "MAB",
+                                    "GB",
+                                    "GOM",
+                                    "SS"))
+
+```
+
+```{r}
+# function to apply extracting info
+getmodindex <- function(d.name){
+  # read settings
+  modpath <- stringr::str_split(d.name, "/", simplify = TRUE)
+  modname <- modpath[length(modpath)]
+  
+  index <- read.csv(file.path(d.name, "Index.csv"))
+  # return model indices as a dataframe
+  out <- data.frame(modname = modname,
+                    index
+  )
+  
+  return(out)
+}
+
+# from each output folder in pyindex, 
+outdir <- here::here("pyindex")
+moddirs <- list.dirs(outdir)
+moddirs <- moddirs[-1]
+
+
+modcompareindex <- purrr::map_dfr(moddirs, getmodindex)
+
+```
+
+```{r}
+splitoutput <- modcompareindex %>%
+  dplyr::mutate(Season = modname |> map(str_split, pattern = "_") |> map_chr(c(1,2))) %>%
+  dplyr::mutate(Data = modname |> map(str_split, pattern = "_") |> map_chr(c(1,1))) %>%
+  dplyr::left_join(stratlook) %>%
+  dplyr::filter(Region %in% c("GOM", "GB", "MAB","SS", "AllEPU")) 
+
+benthosmax <- max(splitoutput$Estimate)
+
+
+benthostsmean <- splitoutput %>%
+  dplyr::group_by(modname, Region) %>%
+  dplyr::mutate(fmean = mean(Estimate)) 
+
+```
+
+Do we have `ecodata` trends in any time series?
+
+```{r, fig.height=8}
+
+filterEPUs <- c("MAB", "GB", "GOM", "SS", "AllEPU")
+
+currentMonth <- lubridate::month(Sys.Date())
+    currentYear <- lubridate::year(Sys.Date())
+    if (currentMonth > 4) {
+      endShade <- currentYear
+    } else {
+      endShade <- currentYear - 1
+    }
+    shadedRegion <- c(endShade-9,endShade)
+
+    shade.alpha <- 0.3
+    shade.fill <- "lightgrey"
+    lwd <- 1
+    pcex <- 2
+    trend.alpha <- 0.5
+    trend.size <- 2
+    hline.size <- 1
+    line.size <- 2
+    hline.alpha <- 0.35
+    hline.lty <- "dashed"
+    label.size <- 5
+    hjust.label <- 1.5
+    letter_size <- 4
+    errorbar.width <- 0.25
+    x.shade.min <- shadedRegion[1]
+    x.shade.max <- shadedRegion[2]
+
+    setup <- list(
+      shade.alpha = shade.alpha,
+      shade.fill =shade.fill,
+      lwd = lwd,
+      pcex = pcex,
+      trend.alpha = trend.alpha,
+      trend.size = trend.size,
+      line.size = line.size,
+      hline.size = hline.size,
+      hline.alpha = hline.alpha,
+      hline.lty = hline.lty,
+      errorbar.width = errorbar.width,
+      label.size = label.size,
+      hjust.label = hjust.label,
+      letter_size = letter_size,
+      x.shade.min = x.shade.min,
+      x.shade.max = x.shade.max
+    )
+    
+
+    fix<- splitoutput |>
+      dplyr::filter(Data %in% c("macrobenthos"),
+                    Region %in% filterEPUs) |>
+      dplyr::group_by(Region, Season) |>
+      dplyr::summarise(max = max(Estimate))
+    
+    p <- splitoutput |>
+      dplyr::filter(Data %in% c("macrobenthos"),
+                    Region %in% filterEPUs) |>
+      dplyr::group_by(Region, Season) |>
+      dplyr::left_join(fix) |>
+      dplyr::mutate(#Value = Value/resca,
+        Mean = as.numeric(Estimate),
+        SE = Std..Error.for.Estimate,
+        Mean = Mean/max,
+        SE = SE/max,
+        Upper = Mean + SE,
+        Lower = Mean - SE) |>
+      ggplot2::ggplot(ggplot2::aes(x = Time, y = Mean, group = Season))+
+      ggplot2::annotate("rect", fill = setup$shade.fill, alpha = setup$shade.alpha,
+                        xmin = setup$x.shade.min , xmax = setup$x.shade.max,
+                        ymin = -Inf, ymax = Inf) +
+      ggplot2::geom_ribbon(ggplot2::aes(ymin = Lower, ymax = Upper, fill = Season), alpha = 0.5)+
+      ggplot2::geom_point()+
+      ggplot2::geom_line()+
+      ggplot2::ggtitle("Macrobenthos")+
+      ggplot2::ylab(expression("Relative benthos biomass"))+
+      ggplot2::xlab(ggplot2::element_blank())+
+      ggplot2::facet_wrap(Region~Season, ncol = 2)+
+      ecodata::geom_gls()+
+      ecodata::theme_ts()+
+      ecodata::theme_facet()+
+      ecodata::theme_title()
+    
+    p
+
+```
+
+```{r, fig.height=8}
+
+    fix<- splitoutput |>
+      dplyr::filter(Data %in% c("megabenthos"),
+                    Region %in% filterEPUs) |>
+      dplyr::group_by(Region, Season) |>
+      dplyr::summarise(max = max(Estimate))
+    
+    p <- splitoutput |>
+      dplyr::filter(Data %in% c("megabenthos"),
+                    Region %in% filterEPUs) |>
+      dplyr::group_by(Region, Season) |>
+      dplyr::left_join(fix) |>
+      dplyr::mutate(#Value = Value/resca,
+        Mean = as.numeric(Estimate),
+        SE = Std..Error.for.Estimate,
+        Mean = Mean/max,
+        SE = SE/max,
+        Upper = Mean + SE,
+        Lower = Mean - SE) |>
+      ggplot2::ggplot(ggplot2::aes(x = Time, y = Mean, group = Season))+
+      ggplot2::annotate("rect", fill = setup$shade.fill, alpha = setup$shade.alpha,
+                        xmin = setup$x.shade.min , xmax = setup$x.shade.max,
+                        ymin = -Inf, ymax = Inf) +
+      ggplot2::geom_ribbon(ggplot2::aes(ymin = Lower, ymax = Upper, fill = Season), alpha = 0.5)+
+      ggplot2::geom_point()+
+      ggplot2::geom_line()+
+      ggplot2::ggtitle("Megabenthos")+
+      ggplot2::ylab(expression("Relative benthos biomass"))+
+      ggplot2::xlab(ggplot2::element_blank())+
+      ggplot2::facet_wrap(Region~Season, ncol = 2)+
+      ecodata::geom_gls()+
+      ecodata::theme_ts()+
+      ecodata::theme_facet()+
+      ecodata::theme_title()
+    
+    p
+
+```
+
+
+Trend comparisons by season, any difference macro and megabenthos?
+
+```{r, fig.height=8}
+ggplot(benthostsmean |> filter(Season =="fall"), 
+       aes(x=Time, y=((Estimate-fmean)/fmean), colour=Data)) +
+  geom_errorbar(aes(ymin=(Estimate+Std..Error.for.Estimate - fmean)/fmean, 
+                    ymax=(Estimate-Std..Error.for.Estimate - fmean)/fmean))+
+  geom_point(aes(shape=Data))+
+  geom_line()+
+  #acet_wrap(~fct_relevel(Type, "Ecoregion", "Bluefish"), scales = "free_y") +
+  facet_wrap(~Region, scales = "free_y", ncol = 1) +
+  #scale_y_continuous(labels=function(x)round(x/foragemax, digits = 2))+
+  ylab("Relative benthos biomass scaled to time series mean")  +
+  ggtitle("Fall models: trend comparison") +
+  theme(#legend.position = c(1, 0),
+        #legend.justification = c(1, 0)
+        legend.position = "bottom",
+        legend.text = element_text(size=rel(0.5)),
+        legend.key.size = unit(0.5, 'lines'),
+        legend.title = element_text(size=rel(0.5)))
+
+```
+
+```{r, fig.height=8}
+ggplot(benthostsmean |> filter(Season =="spring"), 
+       aes(x=Time, y=((Estimate-fmean)/fmean), colour=Data)) +
+  geom_errorbar(aes(ymin=(Estimate+Std..Error.for.Estimate - fmean)/fmean, 
+                    ymax=(Estimate-Std..Error.for.Estimate - fmean)/fmean))+
+  geom_point(aes(shape=Data))+
+  geom_line()+
+  #acet_wrap(~fct_relevel(Type, "Ecoregion", "Bluefish"), scales = "free_y") +
+  facet_wrap(~Region, scales = "free_y", ncol = 1) +
+  #scale_y_continuous(labels=function(x)round(x/foragemax, digits = 2))+
+  ylab("Relative benthos biomass scaled to time series mean")  +
+  ggtitle("Spring models: trend comparison") +
+  theme(#legend.position = c(1, 0),
+        #legend.justification = c(1, 0)
+        legend.position = "bottom",
+        legend.text = element_text(size=rel(0.5)),
+        legend.key.size = unit(0.5, 'lines'),
+        legend.title = element_text(size=rel(0.5)))
+
+```
+
+Scale comparisons by season, any difference macro and megabenthos?
+
+```{r, fig.height=8}
+
+ggplot(splitoutput |> filter(Season =="fall"), 
+       aes(x=Time, y=Estimate, colour=Data)) +
+  #geom_errorbar(aes(ymin=Estimate+Std..Error.for.Estimate, ymax=Estimate-Std..Error.for.Estimate))+
+  geom_ribbon(aes(ymin=Estimate+Std..Error.for.Estimate, ymax=Estimate-Std..Error.for.Estimate, fill=Data), linetype = 0, alpha = 0.15)+
+  geom_point(aes(shape=Data))+
+  geom_line()+
+  #acet_wrap(~fct_relevel(Type, "Ecoregion", "Bluefish"), scales = "free_y") +
+  facet_wrap(~Region, scales = "free_y", ncol = 1) +
+  scale_y_continuous(labels=function(x)round(x/benthosmax, digits = 2))+
+  ylab("Relative benthos biomass scaled to maximum")  +
+  ggtitle("Fall models: scale comparison")+
+  theme(#legend.position = c(1, 0),
+        #legend.justification = c(1, 0)
+        legend.position = "bottom",
+        legend.text = element_text(size=rel(0.5)),
+        legend.key.size = unit(0.5, 'lines'),
+        legend.title = element_text(size=rel(0.5)))
+
+```
+
+
+```{r, fig.height=8}
+
+ggplot(splitoutput |> filter(Season =="spring"), 
+       aes(x=Time, y=Estimate, colour=Data)) +
+  #geom_errorbar(aes(ymin=Estimate+Std..Error.for.Estimate, ymax=Estimate-Std..Error.for.Estimate))+
+  geom_ribbon(aes(ymin=Estimate+Std..Error.for.Estimate, ymax=Estimate-Std..Error.for.Estimate, fill=Data), linetype = 0, alpha = 0.15)+
+  geom_point(aes(shape=Data))+
+  geom_line()+
+  #acet_wrap(~fct_relevel(Type, "Ecoregion", "Bluefish"), scales = "free_y") +
+  facet_wrap(~Region, scales = "free_y", ncol = 1) +
+  scale_y_continuous(labels=function(x)round(x/benthosmax, digits = 2))+
+  ylab("Relative benthos biomass scaled to maximum")  +
+  ggtitle("Spring models: scale comparison")+
+  theme(#legend.position = c(1, 0),
+        #legend.justification = c(1, 0)
+        legend.position = "bottom",
+        legend.text = element_text(size=rel(0.5)),
+        legend.key.size = unit(0.5, 'lines'),
+        legend.title = element_text(size=rel(0.5)))
+
+```
 
 

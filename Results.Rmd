@@ -30,7 +30,51 @@ See [workflow document](https://noaa-edab.github.io/benthosindex/WorkflowDecisio
 
 ## Counts of stations total and with prey
 
+In the table below, Total stations is all stations where benthivore predators were sampled. The fields from Total stomachs through Variance n preds reflect the number of predators sampled at all of these stations. The last four columns reflect the number and percent of stations with positive macrobenthos and megabenthos prey, respectively.
+
+Note that we did not use data from 1973-1979 in the models, and we excluded 2023 right now because we only have NEAMAP, not NEFSC data for 2023.
+
 ```{r}
+macrobenagg_stn <- readRDS(here::here("fhdata/macrobenagg_stn_all_modBT.rds"))
+megabenagg_stn <- readRDS(here::here("fhdata/megabenagg_stn_all_modBT.rds"))
+
+nstationsyr <- macrobenagg_stn |>
+  dplyr::group_by(year, season_ng) |>
+  dplyr::summarise(totstations = n(),
+                   totstomachs = sum(nstomtot),
+                   minnpred = min(nbenthivoresp),
+                   meannpred = mean(nbenthivoresp),
+                   maxnpred = max(nbenthivoresp),
+                   varnpred = var(nbenthivoresp))
+
+macropreystns <- macrobenagg_stn |>
+  dplyr::filter(meanmacrobenpywt > 0) |>
+  dplyr::group_by(year, season_ng) |>
+  dplyr::summarise(macrobenstations = n())
+
+megapreystns <- megabenagg_stn |>
+  dplyr::filter(meanmegabenpywt > 0) |>
+  dplyr::group_by(year, season_ng) |>
+  dplyr::summarise(megabenstations = n())
+
+stationsprey <- dplyr::left_join(nstationsyr, macropreystns) |>
+  dplyr::left_join(megapreystns) |>
+  dplyr::arrange(desc(season_ng), .by_group = TRUE) |>
+  dplyr::mutate(year = as.character(year),
+                percmacro = round(macrobenstations/totstations*100),
+                percmega = round(megabenstations/totstations*100)) |>
+  na.omit()
+
+flextable::flextable(stationsprey) |>
+  flextable::colformat_char(j = "year") |>
+  flextable::fontsize(size = 8, part = "all") |>
+  flextable::set_header_labels(
+    year = "Year", season_ng = "Season", totstations = "Total stations", 
+    totstomachs = "Total stomachs", minnpred = "Minimum n preds", meannpred = "Mean n preds", 
+    maxnpred = "Maximum n preds", varnpred = "Variance n preds",
+    macrobenstations =  "Macrobenthos stations",
+    megabenstations = "Megabenthos stations",
+    percmacro =  "Percent macrobenthos", percmega = "Percent megabenthos")
 
 ```
 

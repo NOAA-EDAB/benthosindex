@@ -457,3 +457,130 @@ for(d.name in moddirs){
                         
 ```
 
+# What prey are in the raw input data?
+
+## Macrobenthos composition over time in stomachs
+
+NEFSC data only
+
+```{r}
+macrobenall_stn <- readRDS(here("fhdata/macrobenall_stn.rds"))
+
+ MAB <- data.frame(stratum = c(1010:1080, 1100:1120, 1600:1750, 3010:3450, 3470, 3500, 3510),
+                      EPU = "MAB")
+ 
+ GB <- data.frame(stratum = c(1090, 1130:1210, 1230, 1250, 3460, 3480, 3490, 3520:3550),
+                  EPU = "GB")
+ 
+ GOM <- data.frame(stratum = c(1220, 1240, 1260:1290, 1360:1400, 3560:3830),
+                   EPU = "GOM")
+  
+EPUlook <- dplyr::bind_rows(MAB, GB, GOM)
+
+# object is called prey
+load(here("data/prey.RData")) #original mappings from June 2023
+
+addtomacro <- prey |>
+  dplyr::filter(RPATH == "Megabenthos") |> 
+  dplyr::filter(PYNAM %in% c("ALBUNEA PARETII", "EMERITA TALPOIDA", "RANILIA MURICATA", "HIPPIDAE"))
+
+megaben <- prey |>
+  dplyr::filter(RPATH == "Megabenthos") |>
+  dplyr::filter(!PYNAM %in% c("ALBUNEA PARETII", "EMERITA TALPOIDA", "RANILIA MURICATA", "HIPPIDAE"))
+
+macroben <- prey |>
+  dplyr::filter(RPATH == "Macrobenthos") |> 
+  dplyr::filter(!PYNAM %in% c("PECTINIDAE", "PECTINIDAE SHELL", "PECTINIDAE VISCERA")) |>
+  dplyr::bind_rows(addtomacro)
+
+macroben.analcoll <- macroben |>
+  dplyr::select(PYNAM, PYCOMNAM, AnalSci, AnalCom, CollSci, Collcom)
+
+collcolors <- data.frame(prey = unique(macroben.analcoll$Collcom),
+                        #preycol = colors()[seq(1, length(colors()), 15)])
+                        preycol = viridis::turbo(length(unique(macroben.analcoll$Collcom))))
+
+
+macrobensppwt <- macrobenall_stn %>%
+  dplyr::left_join(EPUlook) %>%
+  dplyr::filter(macrobenthos=="macroben",
+                !is.na(EPU),
+                !is.na(season_ng)) %>%
+  dplyr::group_by(year, season_ng, EPU, macrobenpynam) %>%
+  dplyr::summarise(pysum = sum(macrobenpywt)) %>%
+  dplyr::mutate(pyprop = pysum / sum(pysum)) %>%
+  dplyr::ungroup() %>%
+  dplyr::left_join(macroben.analcoll, by =  dplyr::join_by(macrobenpynam == PYNAM)) |>
+  dplyr::left_join(collcolors, by =  dplyr::join_by(Collcom == prey))
+
+preycols <- macrobensppwt$preycol
+names(preycols) <- as.factor(macrobensppwt$macrobenpynam)
+
+preyaggcols <- macrobensppwt$preycol
+names(preyaggcols) <- as.factor(macrobensppwt$Collcom)
+
+
+top20spp <- macrobensppwt |>
+  dplyr::group_by(season_ng, EPU, Collcom) |>
+  dplyr::summarise(meanprop = mean(pyprop, na.rm = TRUE),
+                   maxprop = max(pyprop, na.rm = TRUE)) |>
+  dplyr::ungroup() |>
+  dplyr::arrange(desc(meanprop))
+
+plotDietCompBar <- function(dat, metric, catname, plotcol, title=NULL){   #defines the name of the function and the requied inputs
+  
+dat %>% 
+  filter(!is.na(.data[[metric]])) %>%          #take out the NA values (literally "not is NA")
+  ggplot(aes(x=year, y=.data[[metric]], fill=.data[[catname]])) +     #year on x axis, %diet comp on y
+  geom_bar(width = 1, stat = "identity", position="fill") +    #stacked bar chart
+  scale_fill_manual(values=plotcol) +         #custom colors
+  ecodata::theme_facet() +                    #simplify
+  facet_grid(fct_relevel(EPU,  "GOM", "GB", "MAB")~
+               fct_relevel(season_ng, "SPRING", "FALL")) + #separate by ordered epu and season
+  labs(y = "% composition",              #add sensible labels
+       title = title) 
+    
+}   
+
+addSmallLegend <- function(myPlot, pointSize = 2, textSize = 6, spaceLegend = 0.5) {
+    myPlot +
+        guides(shape = guide_legend(override.aes = list(size = pointSize)),
+               color = guide_legend(override.aes = list(size = pointSize)),
+               fill = guide_legend(ncol = 1)) +
+        theme(legend.title = element_text(size = textSize), 
+              legend.text  = element_text(size = textSize),
+              legend.key.size = unit(spaceLegend, "lines"))
+}
+
+pall <- plotDietCompBar(dat=macrobensppwt, 
+                          metric="pysum", 
+                        catname="macrobenpynam",
+                        plotcol=preycols,
+                          title="Diet composition")  
+
+pcat <- plotDietCompBar(dat=macrobensppwt, 
+                          metric="pysum", 
+                        catname="Collcom",
+                        plotcol=preyaggcols,
+                          title="Diet composition")
+
+addSmallLegend(pall)
+
+addSmallLegend(pcat)
+
+```
+
+
+
+# Have the benthivores used as samplers changed over time?
+
+
+
+# Any other sources to compare with?
+
+NEFSC benthic database available here: https://www.obis.org/dataset/e7c86904-aac7-4a17-a895-99a54c430d80 
+
+Full dataset in local `data-raw/NEFSCbenthicdatabase` folder
+
+
+

@@ -463,7 +463,7 @@ for(d.name in moddirs){
 
 NEFSC data only
 
-```{r}
+```{r, fig.height=8}
 macrobenall_stn <- readRDS(here("fhdata/macrobenall_stn.rds"))
 
  MAB <- data.frame(stratum = c(1010:1080, 1100:1120, 1600:1750, 3010:3450, 3470, 3500, 3510),
@@ -525,7 +525,7 @@ top20spp <- macrobensppwt |>
   dplyr::summarise(meanprop = mean(pyprop, na.rm = TRUE),
                    maxprop = max(pyprop, na.rm = TRUE)) |>
   dplyr::ungroup() |>
-  dplyr::arrange(desc(meanprop))
+  dplyr::arrange(EPU, season_ng, desc(meanprop))
 
 plotDietCompBar <- function(dat, metric, catname, plotcol, title=NULL){   #defines the name of the function and the requied inputs
   
@@ -570,6 +570,136 @@ addSmallLegend(pcat)
 
 ```
 
+Collcom trends by EPU
+
+```{r, fig.height=8}
+macrobensppwt |>
+  dplyr::filter(EPU=="GOM") |>
+  ggplot2::ggplot(ggplot2::aes(x=year, y=pyprop, colour = season_ng)) +
+  ggplot2::geom_line() +
+  ecodata::theme_facet() +
+  ggplot2::facet_wrap(~Collcom) +
+  ggplot2::ggtitle("GOM Macro") +
+  ggplot2::theme(legend.position = "bottom")
+```
+
+```{r, fig.height=8}
+macrobensppwt |>
+  dplyr::filter(EPU=="GB") |>
+  ggplot2::ggplot(ggplot2::aes(x=year, y=pyprop, colour = season_ng)) +
+  ggplot2::geom_line() +
+  ecodata::theme_facet() +
+  ggplot2::facet_wrap(~Collcom) +
+  ggplot2::ggtitle("GB Macro")+
+  ggplot2::theme(legend.position = "bottom")
+```
+
+```{r, fig.height=8}
+macrobensppwt |>
+  dplyr::filter(EPU=="MAB") |>
+  ggplot2::ggplot(ggplot2::aes(x=year, y=pyprop, colour = season_ng)) +
+  ggplot2::geom_line() +
+  ecodata::theme_facet() +
+  ggplot2::facet_wrap(~Collcom) +
+  ggplot2::ggtitle("MAB Macro")+
+  ggplot2::theme(legend.position = "bottom")
+```
+
+## Megabenthos composition over time in stomachs
+
+NEFSC data only
+
+```{r, fig.height=8}
+megabenall_stn <- readRDS(here("fhdata/megabenall_stn.rds"))
+
+
+megaben.analcoll <- megaben |>
+  dplyr::select(PYNAM, PYCOMNAM, AnalSci, AnalCom, CollSci, Collcom)
+
+collcolors <- data.frame(prey = unique(megaben.analcoll$Collcom),
+                        #preycol = colors()[seq(1, length(colors()), 15)])
+                        preycol = viridis::turbo(length(unique(megaben.analcoll$Collcom))))
+
+
+megabensppwt <- megabenall_stn %>%
+  dplyr::left_join(EPUlook) %>%
+  dplyr::filter(megabenthos=="megaben",
+                !is.na(EPU),
+                !is.na(season_ng)) %>%
+  dplyr::group_by(year, season_ng, EPU, megabenpynam) %>%
+  dplyr::summarise(pysum = sum(megabenpywt)) %>%
+  dplyr::mutate(pyprop = pysum / sum(pysum)) %>%
+  dplyr::ungroup() %>%
+  dplyr::left_join(megaben.analcoll, by =  dplyr::join_by(megabenpynam == PYNAM)) |>
+  dplyr::left_join(collcolors, by =  dplyr::join_by(Collcom == prey))
+
+preycols <- megabensppwt$preycol
+names(preycols) <- as.factor(megabensppwt$megabenpynam)
+
+preyaggcols <- megabensppwt$preycol
+names(preyaggcols) <- as.factor(megabensppwt$Collcom)
+
+
+top20spp <- megabensppwt |>
+  dplyr::group_by(season_ng, EPU, Collcom) |>
+  dplyr::summarise(meanprop = mean(pyprop, na.rm = TRUE),
+                   maxprop = max(pyprop, na.rm = TRUE)) |>
+  dplyr::ungroup() |>
+  dplyr::arrange(EPU, season_ng, desc(meanprop))
+
+
+pall <- plotDietCompBar(dat=megabensppwt, 
+                          metric="pysum", 
+                        catname="megabenpynam",
+                        plotcol=preycols,
+                          title="Diet composition")  
+
+pcat <- plotDietCompBar(dat=megabensppwt, 
+                          metric="pysum", 
+                        catname="Collcom",
+                        plotcol=preyaggcols,
+                          title="Diet composition")
+
+addSmallLegend(pall)
+
+addSmallLegend(pcat)
+
+```
+
+Collcom trends by EPU
+
+```{r, fig.height=8}
+megabensppwt |>
+  dplyr::filter(EPU=="GOM") |>
+  ggplot2::ggplot(ggplot2::aes(x=year, y=pyprop, colour = season_ng)) +
+  ggplot2::geom_line() +
+  ecodata::theme_facet() +
+  ggplot2::facet_wrap(~Collcom) +
+  ggplot2::ggtitle("GOM Mega") +
+  ggplot2::theme(legend.position = "bottom")
+```
+
+```{r, fig.height=8}
+megabensppwt |>
+  dplyr::filter(EPU=="GB") |>
+  ggplot2::ggplot(ggplot2::aes(x=year, y=pyprop, colour = season_ng)) +
+  ggplot2::geom_line() +
+  ecodata::theme_facet() +
+  ggplot2::facet_wrap(~Collcom) +
+  ggplot2::ggtitle("GB Mega")+
+  ggplot2::theme(legend.position = "bottom")
+```
+
+```{r, fig.height=8}
+megabensppwt |>
+  dplyr::filter(EPU=="MAB") |>
+  ggplot2::ggplot(ggplot2::aes(x=year, y=pyprop, colour = season_ng)) +
+  ggplot2::geom_line() +
+  ecodata::theme_facet() +
+  ggplot2::facet_wrap(~Collcom) +
+  ggplot2::ggtitle("MAB Mega")+
+  ggplot2::theme(legend.position = "bottom")
+```
 
 
 # Have the benthivores used as samplers changed over time?

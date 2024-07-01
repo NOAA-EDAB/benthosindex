@@ -74,3 +74,14 @@ SOEinputs(infile = "pyindex/megabenthos_spring_500_cov/Index.csv",
 #   geom_point()+
 #   geom_line()
 
+macrowide <- fallmacrobenthosindex |> tidyr::pivot_wider(names_from = Var, values_from = Value)
+
+ggplot2::ggplot(macrowide, ggplot2::aes(x=Time, y=`Fall Macrobenthos Biomass Index Estimate`, colour=EPU)) + 
+  ggplot2::geom_ribbon(ggplot2::aes(ymin=`Fall Macrobenthos Biomass Index Estimate`-`Fall Macrobenthos Biomass Index Estimate SE`, 
+                                      ymax=`Fall Macrobenthos Biomass Index Estimate`+`Fall Macrobenthos Biomass Index Estimate SE`,
+                                    fill=EPU),
+                      alpha=0.5)+
+  ggplot2::geom_point()+
+  ggplot2::geom_line() #+
+  #ggplot2::facet_wrap(~EPU)
+

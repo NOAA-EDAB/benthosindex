@@ -1,0 +1,86 @@
+---
+title: "Food webs in hot water: assessing benthic invertebrate community trends in a rapidly warming continental shelf ecosystem"
+author: "Sarah Gaichas, James Gartland, Brian E. Smith, Sarah Weisberg, Sean Lucey..."
+affiliation: "NEFSC, VIMS, NEFSC"
+date: "`r Sys.Date()`"
+abstract: "Benthic invertebrates are important food items in marine ecosystems, but populatons of non-commercial species are rarely monitored. We developed indices of benthic invertebrate abundance for use in ecosystem modeling, reporting, and risk assessment applications using VAST models based on fish stomach contents. The resulting indices are way better than the nothing we had before."
+authorsummary: "Best. Paper. Ever."
+output: 
+  bookdown::word_document2:
+    toc: false
+    number_sections: false
+  bookdown::pdf_document2:
+    template: plos_latex_template_pd.tex
+link-citations: yes
+csl: "plos.csl"
+bibliography: BenthosIndex.bib
+urlcolor: blue    
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, # no code blocks in word doc
+                      message = FALSE,
+                      warning = FALSE,
+                      dev = "cairo_pdf")
+
+#$^{1}$NOAA Fisheries, Northeast Fisheries Science Center, 166 Water St., Woods Hole MA, USA.  
+#
+#$^{2}$Virginia Institute of Marine Science, William & Mary, Gloucester Point, VA, USA. 
+```
+
+# Introduction
+
+Marine ecosystems provide important provisioning and cultural services, such as food, employment, and recreation. Climate impacts on marine ecosystems range from X to Y to Z, and are affecting provisioning and cultural services. 
+
+Fishery resources directly providing provisioning services are often monitored and managed in many regions to ensure sustainability of food, employment, and recreation. However, even in areas with extensive management resources, monitoring of important regulating and supporting ecosystem components is less extensive. 
+
+Benthic invertebrates support some of the most economically important fisheries in the world. In the United States, benthic invertebrates (scallops, clams, lobsters, and crabs) account for the highest proportion of total revenue. The invertebates
+
+Impacts at the surface and in pelagic zones include...
+
+# Materials and Methods
+
+## Data 
+
+Two categories, benthic macrofauna and benthic megafauna. Why. What is in them. 
+
+How were predator species selected for inclusion of stomach contents.
+
+Which surveys.
+
+Covariate data (bottom temperature). 
+
+## VAST model
+
+VAST [@thorson_comparing_2017; @thorson_guidance_2019] 
+Stomach contents based VAST [@ng_predator_2021; @gaichas_assessing_2023]
+
+# Results
+
+Models with spatial and spatio-temporal random effects, and with covariates for number of predator species, mean predator size, and bottom water temperature best explained the data for both benthic macrofauna and megafauna.
+
+Benthic macrofauna indices show declining trends since the early to mid 2000s. In contrast, benthic megafauna show relatively steady trends, with recent increases.
+
+The center of gravity for benthic macrofauna has shifted to the south and west in spring, but shows no trend in fall. There is no trend in the center of gravity for benthic megafauna in either season.
+
+# Discussion
+
+While individual species are expected to fluctuate, functional group biomass is generally observed to be more stable (Fogarty). However, we observed significant trends in functinal groups comprised of hundreds of taxa. 
+
+Trends for fished invertebrates in this system are... scallops up (but 2023 die off), surfclams and ocean quahogs slowly down. 
+
+Benthic center of gravity going south paper
+
+
+# Acknowledgments
+
+
+\nolinenumbers
+
+# References
+
+<div id="refs"></div>
+
+# Supporting information captions (if applicable)
+
+

@@ -6,11 +6,11 @@ date: "`r Sys.Date()`"
 abstract: "Benthic invertebrates are important food items in marine ecosystems, but populatons of non-commercial species are rarely monitored. We developed indices of benthic invertebrate abundance for use in ecosystem modeling, reporting, and risk assessment applications using VAST models based on fish stomach contents. The resulting indices are way better than the nothing we had before."
 authorsummary: "Best. Paper. Ever."
 output: 
+  bookdown::pdf_document2:
+    template: plos_latex_template_pd.tex
   bookdown::word_document2:
     toc: false
     number_sections: false
-  bookdown::pdf_document2:
-    template: plos_latex_template_pd.tex
 link-citations: yes
 csl: "plos.csl"
 bibliography: BenthosIndex.bib
@@ -37,6 +37,11 @@ Fishery resources directly providing provisioning services are often monitored a
 Benthic invertebrates support some of the most economically important fisheries in the world. In the United States, benthic invertebrates (scallops, clams, lobsters, and crabs) account for the highest proportion of total revenue. The invertebates
 
 Impacts at the surface and in pelagic zones include...
+
+A variety of climate impacts have been observed and predicted for marine benthic invertebrates [@birchenough_climate_2015]. Temperature may cause benthic invertebrate mortality events and change the timing of life history processes [@rivetti_global_2014; @przeslawski_beyond_2008], and cause shifts in distribution [@bianchi_benthic_2023]
+
+Temperature isnt the only stressor for benthic invertebrates, also OA [@roberts_benthic_2012]
+
 
 # Materials and Methods
 
@@ -69,7 +74,10 @@ While individual species are expected to fluctuate, functional group biomass is 
 
 Trends for fished invertebrates in this system are... scallops up (but 2023 die off), surfclams and ocean quahogs slowly down. 
 
-Benthic center of gravity going south paper
+Benthic center of gravity going south paper [@fuchs_wrong-way_2020] but others going north [@hale_subtidal_2017] so our mix of species is a wash in most seasons, but south in one? North Sea inverts not moving? [@hiddink_temperature_2015]
+
+Some papers using SST as an indicator for thermal habitat, may not be the same as bottom temp.
+
 
 
 # Acknowledgments

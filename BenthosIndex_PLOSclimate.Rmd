@@ -38,7 +38,7 @@ Benthic invertebrates support some of the most economically important fisheries 
 
 Impacts at the surface and in pelagic zones include...
 
-A variety of climate impacts have been observed and predicted for marine benthic invertebrates [@birchenough_climate_2015]. Temperature may cause benthic invertebrate mortality events and change the timing of life history processes [@rivetti_global_2014; @przeslawski_beyond_2008], and cause shifts in distribution [@bianchi_benthic_2023]
+A variety of climate impacts have been observed and predicted for marine benthic invertebrates [@birchenough_climate_2015]. Temperature may cause benthic invertebrate mortality events and change the timing of life history processes [@rivetti_global_2014; @przeslawski_beyond_2008], and cause shifts in distribution [@hale_subtidal_2017; @bianchi_benthic_2023]
 
 Temperature isnt the only stressor for benthic invertebrates, also OA [@roberts_benthic_2012]
 
@@ -70,7 +70,7 @@ The center of gravity for benthic macrofauna has shifted to the south and west i
 
 # Discussion
 
-While individual species are expected to fluctuate, functional group biomass is generally observed to be more stable (Fogarty). However, we observed significant trends in functinal groups comprised of hundreds of taxa. 
+While individual species are expected to fluctuate, functional group biomass is generally observed to be more stable (@fogarty_art_2014). However, we observed significant trends in functinal groups comprised of hundreds of taxa. 
 
 Trends for fished invertebrates in this system are... scallops up (but 2023 die off), surfclams and ocean quahogs slowly down. 
 

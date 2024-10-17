@@ -1,8 +1,8 @@
 # Streamlined version of CreateVASTInputs.Rmd for operational updates to forage index indicators
 # Modified for benthos index
-# May 2024
-#   This one is updating with 2022 NEFSC and NEAMAP data and OISST
-#   To be used in the 2024 State of the Ecosystem report
+# October 2024
+#   This one is updating with 2025 NEFSC and NEAMAP data and OISST
+#   To be used in the 2025 State of the Ecosystem report
 
 library(tidyverse)
 library(here)
@@ -11,21 +11,24 @@ library(dendextend)
 # Load NEFSC stomach data received from Brian Smith
 
 # object is called `allfh`
-load(url("https://github.com/NOAA-EDAB/forageindex/raw/main/fhdat/allfh.Rdata"))
+load(url("https://github.com/NOAA-EDAB/forageindex/raw/main/fhdat/allfh.rmd.epu.RData"))
 
-#object is called allfh21
-load(url("https://github.com/NOAA-EDAB/forageindex/raw/main/fhdat/allfh21.RData"))
-
-#object is called allfh22
-load(url("https://github.com/NOAA-EDAB/forageindex/raw/main/fhdat/allfh22.RData"))
-
-# bind all NEFSC stomach datasets
-allfh <- allfh %>%
-  dplyr::bind_rows(allfh21) |>
-  dplyr::bind_rows(allfh22)
-
-# can we deload the 21 and 22 datasets?
-rm("allfh21", "allfh22")
+# # object is called `allfh`
+# load(url("https://github.com/NOAA-EDAB/forageindex/raw/main/fhdat/allfh.Rdata"))
+# 
+# #object is called allfh21
+# load(url("https://github.com/NOAA-EDAB/forageindex/raw/main/fhdat/allfh21.RData"))
+# 
+# #object is called allfh22
+# load(url("https://github.com/NOAA-EDAB/forageindex/raw/main/fhdat/allfh22.RData"))
+# 
+# # bind all NEFSC stomach datasets
+# allfh <- allfh %>%
+#   dplyr::bind_rows(allfh21) |>
+#   dplyr::bind_rows(allfh22)
+# 
+# # can we deload the 21 and 22 datasets?
+# rm("allfh21", "allfh22")
 
 ###############################################################################
 # read predator similarity info to generate predator list

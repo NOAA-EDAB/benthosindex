@@ -226,7 +226,7 @@ macrobenall_stn <- fh.nefsc.benthivore.complete.macrobenthos %>%
                                TRUE ~ NA_character_)) 
 
 # Optional: save at prey disaggregated stage for paper
-#saveRDS(macrobenall_stn, here("fhdata/macrobenall_stn.rds"))
+saveRDS(macrobenall_stn, here("fhdata/macrobenall_stn.rds"))
 
 # Now get station data in one line
 stndat <- macrobenall_stn %>%
@@ -294,6 +294,11 @@ neamap_macrobenthos_stn <- read_csv(here("fhdata/NEAMAP_Mean Stomach Weights_Mac
 # Add NEAMAP month and day information
 NEAMAPstationSST <- read.csv("https://raw.githubusercontent.com/NOAA-EDAB/forageindex/main/fhdat/NEAMAP%20SST_2007_2022.csv")
 
+NEAMAPstationSST23 <- read.csv("https://github.com/NOAA-EDAB/forageindex/raw/refs/heads/main/fhdat/NEAMAP%20SST_2023.csv")
+
+NEAMAPstationSST <- dplyr::bind_rows(NEAMAPstationSST, NEAMAPstationSST23)
+
+
 NEAMAPstations <- NEAMAPstationSST %>%
   dplyr::mutate(id = station,
                 year = as.numeric(year),
@@ -344,7 +349,7 @@ megabenall_stn <- fh.nefsc.benthivore.complete.megabenthos %>%
                                    TRUE ~ NA_character_)) 
 
 # Optional: save at prey disaggregated stage for paper
-#saveRDS(megabenall_stn, here("fhdata/megabenall_stn.rds"))
+saveRDS(megabenall_stn, here("fhdata/megabenall_stn.rds"))
 
 # Now get station data in one line
 stndat <- megabenall_stn %>%
@@ -441,6 +446,11 @@ saveRDS(megabenagg_stn_all, here("fhdata/megabenagg_stn_all.rds"))
 # https://noaa-edab.github.io/benthosindex/BottomTempFill.html
 # assuming that those files exist and are in the folder data-raw/bottomtemp/bt_data
 # the following will merge them with the data above
+
+library(sf)
+library(raster)
+library(terra)
+library(nngeo)
 
 #######################################################################
 # Macrobenthos

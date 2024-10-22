@@ -32,7 +32,7 @@ See [workflow document](https://noaa-edab.github.io/benthosindex/WorkflowDecisio
 
 In the table below, Total stations is all stations where benthivore predators were sampled. The fields from Total stomachs through Variance n preds reflect the number of predators sampled at all of these stations. The last four columns reflect the number and percent of stations with positive macrobenthos and megabenthos prey, respectively.
 
-Note that we did not use data from 1973-1979 in the models, and we excluded 2023 right now because we only have NEAMAP, not NEFSC data for 2023.
+Note that we did not use data from 1973-1979 in the models. As of October 2024, we are including data through 2023 from both NEFSC and NEAMAP.
 
 ```{r}
 macrobenagg_stn <- readRDS(here::here("fhdata/macrobenagg_stn_all_modBT.rds"))
@@ -86,12 +86,16 @@ flextable::flextable(stationsprey) |>
 outdir <- here::here("pyindex")
 moddirs <- list.dirs(outdir)
 moddirs <- moddirs[-1]
+
+# only latest
+moddirs23 <- moddirs[-grep("1980-2022", moddirs)]
+
 ```
 
 Spatial coverage for stomachs in fall, both groups (same set of predators, same stations)
 
 ```{r}
-mapfall <- paste0(moddirs[1], "/Data_by_year.png")
+mapfall <- paste0(moddirs23[1], "/Data_by_year.png")
 
 knitr::include_graphics(mapfall) 
 ```
@@ -99,7 +103,7 @@ knitr::include_graphics(mapfall)
 Spatial coverage for stomachs in spring, both groups (same set of predators, same stations)
 
 ```{r}
-mapspring <- paste0(moddirs[2], "/Data_by_year.png")
+mapspring <- paste0(moddirs23[2], "/Data_by_year.png")
 
 knitr::include_graphics(mapspring) 
 ```
@@ -141,7 +145,7 @@ getmodindex <- function(d.name){
   return(out)
 }
 
-modcompareindex <- purrr::map_dfr(moddirs, getmodindex)
+modcompareindex <- purrr::map_dfr(moddirs23, getmodindex)
 
 ```
 
@@ -411,7 +415,7 @@ getcogVAST <- function(d.name){
   
 }
 
-purrr::map(moddirs, getcogVAST)
+purrr::map(moddirs23, getcogVAST)
 ```
 
 Center of gravity plots with `ecodata` trends
@@ -436,13 +440,13 @@ plotcog <- function(d.name){
     ggplot2::ggtitle(modname)
 }
 
-purrr::map(moddirs, plotcog)
+purrr::map(moddirs23, plotcog)
 
 ```
 Density maps
 
 ```{r, , results = "asis"}
-for(d.name in moddirs){
+for(d.name in moddirs23){
   
   modpath <- unlist(str_split(d.name, pattern = "/"))
   modname <- modpath[length(modpath)]

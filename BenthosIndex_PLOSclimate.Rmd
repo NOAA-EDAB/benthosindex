@@ -60,6 +60,18 @@ Covariate data (bottom temperature).
 VAST [@thorson_comparing_2017; @thorson_guidance_2019] 
 Stomach contents based VAST [@ng_predator_2021; @gaichas_assessing_2023]
 
+Catchability covariates are accounted for: number of predator species and mean size of predators at each station, bottom temp at station influence on predation
+
+Indices and COG are outputs
+
+## Evaluating drivers
+
+Are trends in predator groups driving trends in stomach based indices? [@smith_quantifying_2025]
+
+Using temperature as a habitat covariate in VAST when it is already a catchability covaraite--not station specific but look at annual temperature anomalies at the regional scale?
+
+
+
 # Results
 
 Models with spatial and spatio-temporal random effects, and with covariates for number of predator species, mean predator size, and bottom water temperature best explained the data for both benthic macrofauna and megafauna.
